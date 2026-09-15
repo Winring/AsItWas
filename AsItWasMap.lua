@@ -277,26 +277,53 @@ end
 
 function AIW.RefreshMinimapOverlays()
     minimapUsed = 0
-    if not Minimap or not AIW.IsEnabled() then
+    if not Minimap then
+        print("AIW minimap: Minimap frame missing")
+        HideUnusedMinimapBadges()
+        return
+    end
+    if not AIW.IsEnabled() then
+        print("AIW minimap: Addon not enabled")
         HideUnusedMinimapBadges()
         return
     end
     local mapID = C_Minimap.GetUiMapID and C_Minimap.GetUiMapID() or C_Map.GetBestMapForUnit("player")
     if not mapID then
+        print("AIW minimap: No mapID")
         HideUnusedMinimapBadges()
         return
     end
     local player = C_Map.GetPlayerMapPosition(mapID, "player")
     local yardsW, yardsH = C_Map.GetMapWorldSize(mapID)
     local radius = C_Minimap.GetViewRadius and C_Minimap.GetViewRadius()
+    print(string.format("AIW minimap: mapID=%s player=%s yardsW=%s yardsH=%s radius=%s",
+        tostring(mapID),
+        player and "yes" or "nil",
+        tostring(yardsW),
+        tostring(yardsH),
+        tostring(radius)))
     if not player or not yardsW or yardsW == 0 or not radius or radius <= 0 then
+        print("AIW minimap: Missing player/yards/radius")
         HideUnusedMinimapBadges()
         return
     end
     local half = Minimap:GetWidth() / 2
     local edge = half - (BADGE_SIZE / 2)
-    for _, group in pairs(CollectMinimapQuestGroups(mapID)) do
+    local groups = CollectMinimapQuestGroups(mapID)
+    local groupCount = 0
+    for _ in pairs(groups) do
+        groupCount = groupCount + 1
+    end
+    print(string.format("AIW minimap: %d quest groups found", groupCount))
+    if groupCount == 0 then
+        HideUnusedMinimapBadges()
+        return
+    end
+    local badgeCount = 0
+    for _, group in pairs(groups) do
         local kind = GroupBadgeKind(group.ids)
+        print(string.format("AIW minimap: group at %.2f,%.2f with %d quests, kind=%s",
+            group.x, group.y, #group.ids, tostring(kind)))
         if kind then
             local px, py = MapPosToMinimapOffset(mapID, player, yardsW, yardsH, radius, group.x, group.y)
             if px and (px * px + py * py) <= (edge * edge) then
@@ -305,9 +332,14 @@ function AIW.RefreshMinimapOverlays()
                 badge:ClearAllPoints()
                 badge:SetPoint("CENTER", Minimap, "CENTER", px, py)
                 badge:Show()
+                badgeCount = badgeCount + 1
+                print(string.format("AIW minimap: badge %d created at %d,%d", badgeCount, px, py))
+            else
+                print(string.format("AIW minimap: position outside minimap (px=%s py=%s edge=%d)", tostring(px), tostring(py), edge))
             end
         end
     end
+    print(string.format("AIW minimap: %d badges shown", badgeCount))
     HideUnusedMinimapBadges()
 end
 

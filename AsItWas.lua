@@ -471,6 +471,9 @@ boot:SetScript("OnEvent", function(_, event, name)
             if AIW.RefreshTitles then
                 AIW.RefreshTitles()
             end
+            if AIW.RefreshMapOverlays then
+                AIW.RefreshMapOverlays()
+            end
             if not AsItWasDB.seenSetup then
                 AIW.ShowFirstRun()
             end
