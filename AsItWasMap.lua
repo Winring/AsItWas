@@ -70,18 +70,27 @@ end
 local function BadgeKindForQuestIDs(ids)
     local sawNewer, sawOlder, sawUnknown = false, false, false
     for _, questID in ipairs(ids) do
-        if AIW.IsUnknown(questID) then
+        local patch = AIW.QuestPatch(questID)
+        local isUnknown = AIW.IsUnknown(questID)
+        local isInRange = AIW.IsInRange(questID)
+        local kind = AIW.OutOfRangeKind(questID)
+        print(string.format("  AIW badge: quest %d patch=%s unknown=%s inRange=%s kind=%s",
+            questID, patch and AIW.FormatPatchCode(patch) or "?",
+            tostring(isUnknown), tostring(isInRange), tostring(kind)))
+        if isUnknown then
             sawUnknown = true
-        elseif AIW.IsInRange(questID) then
+        elseif isInRange then
+            print(string.format("  AIW badge: quest %d is in-range, returning nil (no badge)", questID))
             return nil
         end
-        local kind = AIW.OutOfRangeKind(questID)
         if kind == "newer" then
             sawNewer = true
         elseif kind == "older" then
             sawOlder = true
         end
     end
+    local result = sawNewer and "newer" or sawOlder and "older" or sawUnknown and "unknown" or nil
+    print(string.format("  AIW badge: final result=%s", tostring(result)))
     if sawNewer then
         return "newer"
     end
@@ -228,13 +237,19 @@ local function CollectMinimapQuestGroups(mapID)
     end
     local groups = {}
     local logQuests = C_QuestLog.GetQuestsOnMap and C_QuestLog.GetQuestsOnMap(mapID)
+    local questCount = 0
     if logQuests then
         for _, info in ipairs(logQuests) do
             if not info.isMapIndicatorQuest then
+                questCount = questCount + 1
+                local patch = AIW.QuestPatch(info.questID)
+                print(string.format("AIW collect: quest %d at %.2f,%.2f patch=%s",
+                    info.questID, info.x or 0, info.y or 0, patch and AIW.FormatPatchCode(patch) or "?"))
                 AddQuestPoint(groups, info.questID, info.x, info.y)
             end
         end
     end
+    print(string.format("AIW collect: %d quests from GetQuestsOnMap", questCount))
     if C_TaskQuest and C_TaskQuest.GetQuestsOnMap then
         local tasks = C_TaskQuest.GetQuestsOnMap(mapID)
         if tasks then
