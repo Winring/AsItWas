@@ -1,0 +1,9 @@
+manual-changelog: CHANGELOG.txt
+
+ignore:
+    - tools
+    - HANDOFF.md
+    - SPEC.md
+    - UPDATE.md
+    - data/quest_patches.csv
+    - data/quest_patches_meta.json
