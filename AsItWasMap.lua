@@ -2,8 +2,8 @@ local _, AIW = ...
 
 local BADGE_SIZE = 16
 local BADGE_TEXTURE = {
-    newer = "Interface\\AddOns\\AsItWas\\textures\\newer",
-    older = "Interface\\AddOns\\AsItWas\\textures\\older",
+    newer = "Interface\\AddOns\\AsItWas\\textures\\newer.png",
+    older = "Interface\\AddOns\\AsItWas\\textures\\older.png",
     unknown = "Interface\\Icons\\INV_Misc_QuestionMark",
 }
 local PIN_TEMPLATES = {

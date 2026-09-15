@@ -276,15 +276,25 @@ end
 
 local CHIP_H = 14
 local CHIP_W = 21 -- chips are 202x132
+local CHIP_FILE_W = 202
+local CHIP_FILE_H = 132
 local MARK_H = 14
+local ARROW_FILE = 64
 local TEX_CHIPS = "Interface\\AddOns\\" .. ADDON_NAME .. "\\textures\\chips\\"
-local TEX_NEWER = "Interface\\AddOns\\" .. ADDON_NAME .. "\\textures\\newer"
-local TEX_OLDER = "Interface\\AddOns\\" .. ADDON_NAME .. "\\textures\\older"
+local TEX_NEWER = "Interface\\AddOns\\" .. ADDON_NAME .. "\\textures\\newer.png"
+local TEX_OLDER = "Interface\\AddOns\\" .. ADDON_NAME .. "\\textures\\older.png"
 local TEX_WARNING = "Interface\\DialogFrame\\UI-Dialog-Icon-AlertNew"
 local TEX_UNKNOWN = "Interface\\Icons\\INV_Misc_QuestionMark"
 
-local function Tex(path, h, w)
-    return string.format("|T%s:%d:%d|t", path, h, w or h)
+-- Same helpers Blizzard uses (TextureUtil.lua). PNG paths keep the .png; XML does too
+-- (e.g. Interface\Transmogrify\Textures.png). SetTexture without an extension
+-- resolves .blp/.tga, which is why these files were blank.
+local function FileMarkup(path, fileW, fileH, w, h)
+    return CreateTextureMarkup(path, fileW, fileH, w, h, 0, 1, 0, 1)
+end
+
+local function SimpleMarkup(path, size)
+    return CreateSimpleTextureMarkup(path, size, size)
 end
 
 function AIW.ExpansionChipMarkup(major)
@@ -292,7 +302,7 @@ function AIW.ExpansionChipMarkup(major)
     if not stem then
         return ""
     end
-    return Tex(TEX_CHIPS .. stem, CHIP_H, CHIP_W)
+    return FileMarkup(TEX_CHIPS .. stem .. ".png", CHIP_FILE_W, CHIP_FILE_H, CHIP_W, CHIP_H)
 end
 
 function AIW.StripTitleMark(title)
@@ -318,19 +328,19 @@ function AIW.MarkTitle(questID, title, style)
     end
     local patch = AIW.QuestPatch(questID)
     if not patch then
-        return table.concat({ Tex(TEX_UNKNOWN, MARK_H), "[?]", title }, " ")
+        return table.concat({ SimpleMarkup(TEX_UNKNOWN, MARK_H), "[?]", title }, " ")
     end
     local major = ExpansionMajorFromCode(patch)
     local parts = {}
     if style == "map" then
         local kind = AIW.OutOfRangeKind(questID)
         if kind == "newer" then
-            parts[#parts + 1] = Tex(TEX_NEWER, MARK_H)
+            parts[#parts + 1] = FileMarkup(TEX_NEWER, ARROW_FILE, ARROW_FILE, MARK_H, MARK_H)
         elseif kind == "older" then
-            parts[#parts + 1] = Tex(TEX_OLDER, MARK_H)
+            parts[#parts + 1] = FileMarkup(TEX_OLDER, ARROW_FILE, ARROW_FILE, MARK_H, MARK_H)
         end
     elseif not AIW.IsInRange(questID) then
-        parts[#parts + 1] = Tex(TEX_WARNING, MARK_H)
+        parts[#parts + 1] = SimpleMarkup(TEX_WARNING, MARK_H)
     end
     local chip = AIW.ExpansionChipMarkup(major)
     if chip ~= "" then
