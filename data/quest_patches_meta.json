@@ -173,9 +173,10 @@
   ],
   "quest_count": 66448,
   "counts": {
-    "poi": 10283,
+    "at_or_before": 28410,
+    "poi_backfill": 1616,
     "id_only": 25524,
-    "poi_after_id": 2231,
-    "at_or_before": 28410
+    "poi": 10283,
+    "poi_after_id": 615
   }
 }

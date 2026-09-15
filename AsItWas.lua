@@ -454,6 +454,7 @@ AIW.OnFilterChanged(UpdateFilterHud)
 local boot = CreateFrame("Frame")
 boot:RegisterEvent("ADDON_LOADED")
 boot:RegisterEvent("PLAYER_LOGIN")
+boot:RegisterEvent("PLAYER_ENTERING_WORLD")
 boot:SetScript("OnEvent", function(_, event, name)
     if event == "ADDON_LOADED" and name == ADDON_NAME then
         AIW.EnsureDB()
@@ -461,9 +462,19 @@ boot:SetScript("OnEvent", function(_, event, name)
     elseif event == "PLAYER_LOGIN" then
         AIW.EnsureDB()
         CreateFilterHud()
-        if not AsItWasDB.seenSetup then
-            AIW.ShowFirstRun()
-        end
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        -- HandlePlayerEnteringWorld calls CloseAllWindows(1), which hides
+        -- UISpecialFrames. Showing first-run on PLAYER_LOGIN therefore
+        -- auto-dismisses every character and writes seenSetup. Wait a frame.
+        C_Timer.After(0, function()
+            AIW.EnsureDB()
+            if AIW.RefreshTitles then
+                AIW.RefreshTitles()
+            end
+            if not AsItWasDB.seenSetup then
+                AIW.ShowFirstRun()
+            end
+        end)
     end
 end)
 
@@ -477,7 +488,11 @@ SlashCmdList.ASITWAS = function(msg)
         AIW.OpenOptions()
     elseif msg == "abandon" or msg == "clean" then
         AIW.ConfirmMassAbandon()
+    elseif msg == "setup" then
+        AIW.EnsureDB()
+        AsItWasDB.seenSetup = false
+        AIW.ShowFirstRun()
     else
-        AIW.Print("/aiw options  /aiw abandon")
+        AIW.Print("/aiw options  /aiw setup  /aiw abandon")
     end
 end

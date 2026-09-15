@@ -180,6 +180,11 @@ local function BuildFirstRunFrame()
         if frame.applied then
             return
         end
+        -- CloseAllWindows (PEW / death / Esc-all) hides UISpecialFrames.
+        -- Do not treat that as the player picking Off.
+        if not frame.userCanDismiss then
+            return
+        end
         AIW.EnsureDB()
         if not pcall(AIW.ApplyFilter, "off", true) then
             return
@@ -218,7 +223,13 @@ function AIW.ShowFirstRun()
     if not firstRunFrame then
         firstRunFrame = BuildFirstRunFrame()
     end
+    firstRunFrame.userCanDismiss = false
     firstRunFrame:Show()
+    C_Timer.After(0, function()
+        if firstRunFrame and firstRunFrame:IsShown() then
+            firstRunFrame.userCanDismiss = true
+        end
+    end)
 end
 
 function AIW.OpenOptions()

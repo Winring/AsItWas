@@ -103,7 +103,55 @@ local function TrackerQuestID(block)
     return nil
 end
 
+local TRACKER_FRAMES = {
+    "QuestObjectiveTracker",
+    "CampaignQuestObjectiveTracker",
+    "BonusObjectiveTracker",
+    "WorldQuestObjectiveTracker",
+}
+
+local wrappedTrackerFrames = {}
+
+local function DecorateTrackerBlock(module, questID, title)
+    if not questID or not module or not module.GetExistingBlock then
+        return
+    end
+    local block = module:GetExistingBlock(questID)
+    if not block or not block.HeaderText then
+        return
+    end
+    local marked = AIW.MarkTitle(questID, title or block.HeaderText:GetText())
+    if marked then
+        block.HeaderText:SetText(marked)
+    end
+end
+
+-- XML mixin= copies methods onto the frame. hooksecurefunc on
+-- ObjectiveTrackerBlockMixin.SetHeader does not run on those copies.
+-- Hook the live module frames instead (QuestObjectiveTracker.lua:280).
 local function WrapTracker()
+    for _, name in ipairs(TRACKER_FRAMES) do
+        local frame = _G[name]
+        if frame and not wrappedTrackerFrames[name] then
+            wrappedTrackerFrames[name] = true
+            if frame.UpdateSingle then
+                hooksecurefunc(frame, "UpdateSingle", function(self, quest)
+                    if not quest then
+                        return
+                    end
+                    local questID = quest.GetID and quest:GetID()
+                    DecorateTrackerBlock(self, questID, quest.title)
+                end)
+            end
+            if frame.SetUpQuestBlock then
+                hooksecurefunc(frame, "SetUpQuestBlock", function(self, block)
+                    if block and type(block.id) == "number" then
+                        DecorateTrackerBlock(self, block.id, block.taskName)
+                    end
+                end)
+            end
+        end
+    end
     if hooked.tracker or not ObjectiveTrackerBlockMixin or not ObjectiveTrackerBlockMixin.SetHeader then
         return
     end
