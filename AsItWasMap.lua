@@ -180,34 +180,33 @@ local function MinimapRotateEnabled()
     return GetCVarBool("rotateMinimap")
 end
 
--- Instance yards + GetPlayerFacing, same space the engine uses when
--- rotateMinimap is on. Map 0-1 rotated by facing would be 90/180 off
--- (tens to hundreds of px). Fallback is HybridMinimap north-up math.
+-- Map 0-1 coords to minimap pixel offset from center.
+-- player.x, player.y are 0-1 map coordinates from GetPlayerMapPosition
+-- x, y are 0-1 quest coordinates
+-- radius is view radius in yards from GetViewRadius
 local function MapPosToMinimapOffset(mapID, player, yardsW, yardsH, radius, x, y)
     local halfW = Minimap:GetWidth() / 2
     local halfH = Minimap:GetHeight() / 2
-    local playerY, playerX = UnitPosition("player")
-    local world
-    if playerX and C_Map.GetWorldPosFromMapPos and CreateVector2D then
-        local _, pos = C_Map.GetWorldPosFromMapPos(mapID, CreateVector2D(x, y))
-        world = pos
-    end
-    if world and world.x and playerX then
-        local xDist = playerX - world.x
-        local yDist = playerY - world.y
-        if MinimapRotateEnabled() then
-            local facing = GetPlayerFacing()
-            if facing then
-                local sin, cos = math.sin(facing), math.cos(facing)
-                xDist, yDist = xDist * cos - yDist * sin, xDist * sin + yDist * cos
-            end
+
+    -- Convert 0-1 map coords to yard offsets
+    local dx = (x - player.x) * yardsW
+    local dy = (player.y - y) * yardsH  -- y axis is inverted
+
+    -- Scale to minimap pixels
+    local scale = halfW / radius
+    local px = dx * scale
+    local py = dy * scale
+
+    -- Apply rotation if enabled
+    if MinimapRotateEnabled() then
+        local facing = GetPlayerFacing()
+        if facing then
+            local sin, cos = math.sin(facing), math.cos(facing)
+            px, py = px * cos - py * sin, px * sin + py * cos
         end
-        return (xDist / radius) * halfW, (-yDist / radius) * halfH
     end
-    local east = (x - player.x) * yardsW
-    local north = (player.y - y) * yardsH
-    local scale = Minimap:GetWidth() / (radius * 2)
-    return east * scale, north * scale
+
+    return px, py
 end
 
 local function AddQuestPoint(groups, questID, x, y)
