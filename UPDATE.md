@@ -16,6 +16,8 @@ Needs `python3` and `curl`. Downloads go to `.cache/wago/` (gitignored). Never c
 
 Ship the regenerated Lua with the same UI. Do not hand-edit generated files.
 
+Until the table is rebuilt, quests added after the last snapshot show as unknown (`?` / `[?]`) in the UI. That is expected, not a filter bug.
+
 ## Source and rule
 
 Retail `wow` builds from [wago.tools](https://wago.tools) (same bytes as the client). For each `X.Y.Z`, the newest live build of that triple.

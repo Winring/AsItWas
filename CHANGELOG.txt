@@ -1,2 +1,8 @@
 V0.1.0
 - We are alive!
+- Era filter per character (whole expansion or exact X.Y.Z, plus Include older)
+- Expansion chips and patch numbers on quest titles (log, tracker, NPC)
+- Warning on out-of-range titles; up/down arrows on map and minimap pins
+- Unknown quests marked with ? / [?]
+- Filter caption under the minimap zone name
+- Mass abandon from the quest log gear menu

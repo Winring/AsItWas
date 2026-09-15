@@ -10,6 +10,6 @@ data/QuestPatches.lua
 data/PatchList.lua
 AsItWas.lua
 AsItWasMap.lua
-AsItWasGossip.lua
+AsItWasTitles.lua
 AsItWasLog.lua
 AsItWasOptions.lua

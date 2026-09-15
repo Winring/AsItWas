@@ -33,18 +33,18 @@ python3 tools/build_quest_patches.py
 
 ### Runtime evaluation
 
-The packaged addon ships `data/QuestPatches.lua`. Compare numeric patch codes (`MMmmpp`), not strings. Unknown IDs stay unmarked. Filter Off marks nothing.
+The packaged addon ships `data/QuestPatches.lua`. Compare numeric patch codes (`MMmmpp`), not strings. Filter Off marks nothing. Unknown IDs (not in the table) are marked with `?` / `[?]`, not treated as in-range.
 
 **Widget.** One dropdown (Off, Legion and older, whole expansion, each real `X.Y.Z`) plus checkbox **Include older quests**. Internally each dropdown row is `min`/`max`.
 
 - **Include older on:** unmarked if `patch <= max`
 - **Include older off:** unmarked if `min <= patch <= max`
 
-Built from the same wago live `X.Y.Z` snapshots as the quest table (8.0.1, 8.1.5, 8.2.5, … — never invent 8.0.0). Official expansion names; patch numbers from those snapshots.
+Built from the same wago live `X.Y.Z` snapshots as the quest table (8.0.1, 8.1.5, 8.2.5, … — never invent 8.0.0). Dropdown/HUD identity tokens are wiki abbreviations: Legion, BfA, SL, DF, TWW, MN. Full names stay out of those labels.
 
-- **Battle for Azeroth (whole)** → min 8.0.1, max 8.3.7 (all BfA, not Legion, unless Include older is on)
-- **Battle for Azeroth 8.0.1** → min = max = 8.0.1
-- Same pattern for Shadowlands / Dragonflight / The War Within / Midnight
+- **BfA (whole)** → min 8.0.1, max 8.3.7 (all BfA, not Legion, unless Include older is on)
+- **BfA 8.0.1** → min = max = 8.0.1
+- Same pattern for SL / DF / TWW / MN
 - Baseline row **Legion and older** (7.3.5 bucket only; we have no 7.0–7.3 split)
 
 **First-run** (once per character): same dropdown (no Off row) + Include older + Confirm. Close / Esc / No filter = Off, never ask again on that character. Later changes go to Options.
@@ -53,24 +53,29 @@ Built from the same wago live `X.Y.Z` snapshots as the quest table (8.0.1, 8.1.5
 
 ### World map and minimap
 
-Do not delete pins. Overlay a **clock badge** (`INV_Misc_PocketWatch_01`) on every out-of-range quest pin, not only the classic bang. Icon art is `Enum.QuestClassification` on the **same questID**:
+Do not delete pins. Overlay era badges on every out-of-range quest pin, not only the classic bang:
 
-- **Normal / Questline** — classic `!`
-- **Campaign** — `!` on shield (`Quest-Campaign-Available`)
-- **Important** — `!` on the purple triangle (`importantavailablequesticon`)
-- Also overlay **Legendary, Meta, Recurring, Calling, WorldQuest, BonusObjective, Threat** the same way
+- **newer** — `textures/newer.png` (blue up)
+- **older** — `textures/older.png` (grey down; only when Include older is off)
+- **unknown** — `INV_Misc_QuestionMark`
 
-Style is display-only. Filter still uses `questID`. AreaPOI / vignette pins without a questID are out of this table.
+World-map pin tooltips use the same arrows (or nothing when in range) plus expansion chip + patch. Minimap quest bangs are engine-drawn; the overlay is a custom texture pass using `C_Minimap.GetViewRadius` and instance-space rotation.
 
-**Same giver, mixed quests:** if that NPC/pin has at least one in-range quest, the in-range icon wins. Do not cover a wanted quest with a clock because the same character also offers a later quest.
+Icon art is `Enum.QuestClassification` on the **same questID** (classic `!`, campaign, important, world quest, hub, bonus, threat). Style is display-only. Filter still uses `questID`. AreaPOI / vignette pins without a questID are out of this table.
+
+**Same giver, mixed quests:** if that NPC/pin has at least one known in-range quest, the in-range icon wins. Mixed older+newer with no in-range quest: newer badge.
 
 3D bangs over NPC heads cannot be reliably removed.
 
-### Gossip and interaction
+### Titles (quest log, tracker, NPC)
 
-Prefix out-of-range titles (e.g. `[12.1.0]`). Leave the row clickable.
+Every known quest, in range or not: expansion chip (`textures/chips/<legion|bfa|sl|df|tww|mn>.png`) + `X.Y.Z` + title. Out of range also gets Blizzard's warning icon. Unknown IDs: `?` + `[?]` + title. Rows stay clickable.
 
-### Quest log, auto-accept, mass abandon
+### HUD
+
+Active filter under the minimap zone name (`GameFontNormalSmall`). Off hides it. Click opens Options.
+
+### Auto-accept, mass abandon
 
 Auto-accepted seasonal quests get the same mark. No auto-abandon.
 
@@ -84,4 +89,4 @@ Auto-accepted seasonal quests get the same mark. No auto-abandon.
 
 ## Status
 
-Parser, generated table (~66448 quests, newest `12.1.0.69814`), and addon UI are on disk. Version `0.1.0`. **Not tested in game.** GitHub [Winring/AsItWas](https://github.com/Winring/AsItWas). Icon is `AsItWas.png`.
+Parser, generated table (~66448 quests, newest `12.1.0.69814`), and addon UI are on disk. Version `0.1.0`. GitHub [Winring/AsItWas](https://github.com/Winring/AsItWas). Icon is `AsItWas.png` — do not overwrite it. In-game verification belongs to the owner.

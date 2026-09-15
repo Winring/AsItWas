@@ -37,7 +37,7 @@ local function MakeOlderCheckbox(parent, getter, setter)
     box:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("Include older quests", 1, 1, 1)
-        GameTooltip:AddLine("Quests from earlier patches stay unmarked. Later patches still get the clock.", nil, nil, nil, true)
+        GameTooltip:AddLine("Earlier patches stay unmarked. Later patches get the blue badge.", nil, nil, nil, true)
         GameTooltip:Show()
     end)
     box:SetScript("OnLeave", GameTooltip_Hide)
@@ -149,10 +149,12 @@ local function BuildFirstRunFrame()
         if not draft.filterId then
             return
         end
-        frame.applied = true
         AIW.EnsureDB()
+        if not pcall(AIW.ApplyFilter, draft.filterId, draft.includeOlder) then
+            return
+        end
+        frame.applied = true
         AsItWasDB.seenSetup = true
-        AIW.ApplyFilter(draft.filterId, draft.includeOlder)
         frame:Hide()
     end)
     frame.Confirm = confirm
@@ -175,11 +177,14 @@ local function BuildFirstRunFrame()
     end)
 
     frame:SetScript("OnHide", function()
-        AIW.EnsureDB()
-        AsItWasDB.seenSetup = true
-        if not frame.applied then
-            AIW.ApplyFilter("off", true)
+        if frame.applied then
+            return
         end
+        AIW.EnsureDB()
+        if not pcall(AIW.ApplyFilter, "off", true) then
+            return
+        end
+        AsItWasDB.seenSetup = true
     end)
 
     return frame

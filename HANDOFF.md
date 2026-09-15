@@ -50,7 +50,12 @@ Where to look, in order of authority:
      `MENU_QUEST_MAP_FRAME_SETTINGS` (set in `QuestMapFrame_SetupSettingsDropdown`)
    * POI / map pins — `POIButtonMixin`, `QuestOfferPinMixin`, `QuestHubPinMixin`,
      `WorldQuestPinMixin`, `BonusObjectivePinMixin`
-   * Gossip — `GossipSharedAvailableQuestButtonMixin` / `GossipSharedActiveQuestButtonMixin`
+   * Gossip / greeting — `GossipSharedQuestButtonMixin.UpdateTitleForQuest`,
+     `QuestFrameGreetingPanel_OnShow`
+   * Quest titles — `QuestUtils_DecorateQuestText` (log + details),
+     `ObjectiveTrackerBlockMixin:SetHeader`
+   * Minimap overlay — `C_Minimap.GetViewRadius`, `UnitPosition`,
+     `C_Map.GetWorldPosFromMapPos`, `GetPlayerFacing` / `rotateMinimap`
    * `Enum.QuestClassification` — pin art only; filter is always `questID`
 
 2. **wago.tools** for the quest→patch table, not for Lua API. Retail live `wow` DB2 CSVs
@@ -77,25 +82,36 @@ in an earlier session; the builder uses `curl`.
 
 ## Where the work currently is
 
-**15 September 2026.** UI and data exist on disk. **Nobody has loaded this in game.** The first
-in-game pass belongs to the owner. Addon icon is `AsItWas.png` next to the toc.
+**15 September 2026.** GitHub [Winring/AsItWas](https://github.com/Winring/AsItWas) `main`. First in-game
+load happened: `RefreshAllDataProviders` during first-run hide, and `seenSetup` must wait until
+`ApplyFilter` succeeds. Titles and minimap clocks were missing on that pass; both are hooked now.
+Addon icon is `AsItWas.png` next to the toc. **Do not overwrite that png.**
 
 Install path the client expects: `Interface/AddOns/AsItWas/` (folder name must match `AsItWas.toc`).
+Copy the whole folder (lua + `textures/`) and `/reload`.
 
-### What is implemented (untested in game)
+### What is implemented
 
 * Mechanical QuestID → patch table from wago history (`tools/build_quest_patches.py`).
 * Filter: one dropdown (Off, Legion and older, each expansion whole, each real `X.Y.Z`) plus
-  **Include older quests**.
-* First-run window once per character; close / Esc / “No filter” = Off and do not nag again.
+  **Include older quests**. Labels use wiki tokens: Legion, BfA, SL, DF, TWW, MN.
+* First-run window once per character; close / Esc / “No filter” = Off. `seenSetup` is set only
+  after a successful `ApplyFilter` (a crash on first show can re-open it).
 * Options canvas under Options → AddOns → As It Was (`/asitwas` or `/aiw`). Same dropdown +
   checkbox; applies immediately (no Confirm).
-* Clock badge (`INV_Misc_PocketWatch_01`, 16px TOPRIGHT) on map/minimap quest pins.
-* Gossip / greeting `[X.Y.Z]` prefix; rows stay clickable.
+* HUD caption under minimap zone text (`GameFontNormalSmall`). Off hides it. Click opens Options.
+* Map/minimap pin badges: `textures/newer.png` (later), `textures/older.png` (earlier, when Include
+  older is off), `INV_Misc_QuestionMark` (unknown). Minimap bangs are engine-drawn; overlay uses
+  `GetViewRadius` every 0.05s and instance-space facing when rotate-minimap is on.
+* Titles (quest log on the map, quest details, tracker, gossip, greeting, progress): expansion chip
+  + `X.Y.Z` + name. Out of range adds Blizzard's warning icon. World-map pin tooltips use the
+  up/down arrows instead of the warning. Unknown IDs: `?` + `[?]`.
+* Expansion chips: `textures/chips/{legion,bfa,sl,df,tww,mn}.png` (AI wordmarks, sliced by alpha,
+  not `width/6`).
 * Auto-accept: `QUEST_ACCEPTED` chat mark only.
 * Mass abandon: quest log settings gear (`Menu.ModifyMenu` on `MENU_QUEST_MAP_FRAME_SETTINGS`) plus
   `/aiw abandon`. Confirm popup. Default **Don't abandon older quests**. Only the **current
-  character** quest log (`C_QuestLog.AbandonQuest`).
+  character** quest log (`C_QuestLog.AbandonQuest`). Unknown IDs are not mass-abandoned.
 
 ### SavedVariables (per character)
 
@@ -108,7 +124,8 @@ Toc: `SavedVariablesPerCharacter: AsItWasDB`.
 | `includeOlder` | `true` | Unmarked if `patch <= filter.max`; if false, `min <= patch <= max` |
 | `doNotAbandonOlder` | `true` | Mass abandon only `patch > max`; if false, abandon everything out of range |
 
-Unknown quest IDs stay unmarked. Filter Off marks nothing.
+Unknown quest IDs are marked `?` / `[?]`. Filter Off marks nothing. Do not treat unknown as in-range
+on titles or pin badges; a known in-range quest on the same giver still wins.
 
 ## Product identity
 
@@ -118,7 +135,7 @@ Unknown quest IDs stay unmarked. Filter Off marks nothing.
 For people going **back** through an expansion/patch, not current-raiders. Later-season quests on
 old maps are the problem. It is not Chromie Time, not a quest guide, not catch-up (catch-up in WoW
 means skip to now). Never block taking a quest — only mark. 3D bangs over NPC heads **cannot** be
-removed; do not spend a session on that.
+removed; do not spend a session on that. Call those marks **vykřičníky**, not bangs, in Czech chat.
 
 Rejected / do not re-open without the owner:
 
@@ -127,6 +144,8 @@ Rejected / do not re-open without the owner:
 * Publishing wago CSV structure (derived integer map is fine)
 * Guessed QuestID ranges
 * Hiding pins instead of a badge
+* Mixing full expansion names into HUD/title tokens (use Legion / BfA / SL / DF / TWW / MN only)
+* Overwriting `AsItWas.png`
 * Auto-abandon
 * Account-wide filter (would mark the Midnight main because an alt picked BfA)
 
@@ -164,17 +183,19 @@ Loaded by the toc (order matters):
 | --- | --- |
 | `data/QuestPatches.lua` | generated QuestID → code |
 | `data/PatchList.lua` | generated snapshot list; UI builds dropdown rows at runtime |
-| `AsItWas.lua` | filter math, DB, slash, first-run trigger |
-| `AsItWasMap.lua` | pin badge |
-| `AsItWasGossip.lua` | gossip / greeting prefix |
+| `AsItWas.lua` | filter math, DB, slash, first-run trigger, HUD, title prefix |
+| `AsItWasMap.lua` | map/minimap era badges |
+| `AsItWasTitles.lua` | log / tracker / gossip / greeting / map-tooltip titles |
 | `AsItWasLog.lua` | mass abandon + `QUEST_ACCEPTED` print |
 | `AsItWasOptions.lua` | first-run frame, Settings canvas, quest-log menu hook |
+| `textures/newer.png`, `older.png` | pin arrows |
+| `textures/chips/*.png` | expansion wordmarks |
 
 Not loaded: `README.md` (CurseForge paste), `UPDATE.md` (table rebuild), `CHANGELOG.txt`,
 `pkgmeta.yaml`, `SPEC.md`, this file, `tools/build_quest_patches.py`.
 
-`pkgmeta.yaml` is `manual-changelog: CHANGELOG.txt` only (same as MemoryKeeper). When a curse pack
-exists, ignore `.cache/` and `tools/`. Do not pack wago CSVs.
+`pkgmeta.yaml` ignores `tools`, this file, `SPEC.md`, `UPDATE.md`, and the maintainer CSV/JSON.
+Do not pack wago CSVs or the Python builder. Do not pack `*_preview.png`.
 
 ## Git, tags, CurseForge — same ritual as MemoryKeeper
 
@@ -229,26 +250,28 @@ the work to an agent in git.
 * `README.md` and `CHANGELOG.txt` are player-facing only. Table-rebuild instructions stay in
   `UPDATE.md`.
 
-## In-game list (owner, first load)
+## In-game list (owner)
 
-Nothing below has been confirmed in 12.1.
+First load already found: first-run `CloseAllWindows` + `seenSetup` on a crashing apply, missing
+title hooks, no minimap clocks. Those are addressed in code. This pass is the chip/arrow/HUD build.
 
-* Addon loads (toc lists every Lua file).
-* First-run once per character; Confirm applies; No filter / X / Esc = Off and never again on that
-  character.
-* Options dropdown + Include older; live apply; Off turns marks off.
+* Addon loads (`AsItWasTitles.lua` + `textures/`).
+* First-run: Confirm applies; a Lua error during apply must **not** set `seenSetup`.
+* HUD under zone name; Off hides; click opens Options.
+* Options dropdown uses BfA / SL / DF / TWW / MN, not mixed full names.
 * Whole BfA vs BfA 8.0.1 vs 8.1.0; Include older on/off.
-* Clock on classic `!`, campaign, important, world quest, hub, bonus, minimap POIButton.
-* Mixed giver: in-range quest wins, no clock over a wanted bang.
-* Gossip + greeting prefix; still clickable; watch for taint.
+* Blue up / grey down on map **and** minimap; zoom and rotate-minimap.
+* Mixed giver: in-range wins.
+* Quest log (map + details), tracker, gossip, greeting: chip + patch; warning when out of range.
+* World-map pin tooltip: arrow or nothing, then chip + patch (not the warning).
+* Unknown ID: `?` `[?]` in titles; question-mark on the pin.
 * Taking a marked quest still works.
-* 3D bang over NPC head still there.
+* 3D vykřičník over NPC head still there.
 * Quest log gear: Don't abandon older + Abandon later; confirm; **only this character's log**.
 * `/aiw` opens Options, `/aiw abandon` still works.
 
 ## Next (only if the owner asks)
 
-1. Owner in-game pass; fix what actually breaks.
-2. Git repo + CurseForge project when they want to ship 0.1.0 (`We are alive!` is already in
-   CHANGELOG).
+1. Owner in-game pass on this commit; fix what actually breaks.
+2. CurseForge project when they want to ship 0.1.0 (changelog already has `We are alive!`).
 3. After the next retail patch: `python3 tools/build_quest_patches.py` and ship new Lua.
