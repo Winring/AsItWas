@@ -70,27 +70,18 @@ end
 local function BadgeKindForQuestIDs(ids)
     local sawNewer, sawOlder, sawUnknown = false, false, false
     for _, questID in ipairs(ids) do
-        local patch = AIW.QuestPatch(questID)
-        local isUnknown = AIW.IsUnknown(questID)
-        local isInRange = AIW.IsInRange(questID)
-        local kind = AIW.OutOfRangeKind(questID)
-        print(string.format("  AIW badge: quest %d patch=%s unknown=%s inRange=%s kind=%s",
-            questID, patch and AIW.FormatPatchCode(patch) or "?",
-            tostring(isUnknown), tostring(isInRange), tostring(kind)))
-        if isUnknown then
+        if AIW.IsUnknown(questID) then
             sawUnknown = true
-        elseif isInRange then
-            print(string.format("  AIW badge: quest %d is in-range, returning nil (no badge)", questID))
+        elseif AIW.IsInRange(questID) then
             return nil
         end
+        local kind = AIW.OutOfRangeKind(questID)
         if kind == "newer" then
             sawNewer = true
         elseif kind == "older" then
             sawOlder = true
         end
     end
-    local result = sawNewer and "newer" or sawOlder and "older" or sawUnknown and "unknown" or nil
-    print(string.format("  AIW badge: final result=%s", tostring(result)))
     if sawNewer then
         return "newer"
     end
@@ -231,33 +222,45 @@ local function AddQuestPoint(groups, questID, x, y)
     group.ids[#group.ids + 1] = questID
 end
 
+-- Same gates as QuestOfferDataProviderMixin:ShouldAddQuestOffer
+-- (Blizzard_SharedMapDataProviders/QuestOfferDataProvider.lua:79). An offer the
+-- player already has in the log draws no bang, so inProgress has to go.
+local function ShouldAddOffer(info, mapID)
+    if not info or not info.questID then
+        return false
+    end
+    if info.inProgress then
+        return false
+    end
+    if info.startMapID and info.startMapID ~= mapID
+        and not (MapUtil and MapUtil.IsChildMapCached and MapUtil.IsChildMapCached(info.startMapID, mapID)) then
+        return false
+    end
+    if info.isHidden and C_Minimap.IsTrackingHiddenQuests and not C_Minimap.IsTrackingHiddenQuests() then
+        return false
+    end
+    return true
+end
+
+-- The minimap only shows quest givers (bangs) and quests ready to hand in.
+-- Objectives of quests in progress are engine blobs, not icons, so the quest
+-- log is read for turn-ins only.
 local function CollectMinimapQuestGroups(mapID)
     if cachedMapID == mapID then
         return cachedGroups
     end
     local groups = {}
-    local logQuests = C_QuestLog.GetQuestsOnMap and C_QuestLog.GetQuestsOnMap(mapID)
-    local questCount = 0
-    if logQuests then
-        for _, info in ipairs(logQuests) do
-            if not info.isMapIndicatorQuest then
-                questCount = questCount + 1
-                local patch = AIW.QuestPatch(info.questID)
-                print(string.format("AIW collect: quest %d at %.2f,%.2f patch=%s",
-                    info.questID, info.x or 0, info.y or 0, patch and AIW.FormatPatchCode(patch) or "?"))
-                AddQuestPoint(groups, info.questID, info.x, info.y)
-            end
+    local seen = {}
+
+    local function AddOffer(info)
+        if ShouldAddOffer(info, mapID) and not seen[info.questID] then
+            seen[info.questID] = true
+            AddQuestPoint(groups, info.questID, info.x, info.y)
         end
     end
-    print(string.format("AIW collect: %d quests from GetQuestsOnMap", questCount))
-    if C_TaskQuest and C_TaskQuest.GetQuestsOnMap then
-        local tasks = C_TaskQuest.GetQuestsOnMap(mapID)
-        if tasks then
-            for _, info in ipairs(tasks) do
-                AddQuestPoint(groups, info.questID, info.x, info.y)
-            end
-        end
-    end
+
+    -- Blizzard's own order: quest lines, force-visible, then tasks
+    -- (QuestOfferDataProviderMixin:GetAllQuestOffersForMap).
     if C_QuestLine then
         if lastQuestLineMapID ~= mapID and C_QuestLine.RequestQuestLinesForMap then
             lastQuestLineMapID = mapID
@@ -266,14 +269,42 @@ local function CollectMinimapQuestGroups(mapID)
         local ok, lines = pcall(C_QuestLine.GetAvailableQuestLines, mapID)
         if ok and lines then
             for _, info in ipairs(lines) do
-                if info.isHidden and C_Minimap.IsTrackingHiddenQuests and not C_Minimap.IsTrackingHiddenQuests() then
-                    -- skip
-                else
+                AddOffer(info)
+            end
+        end
+        if C_QuestLine.GetForceVisibleQuests and C_QuestLine.GetQuestLineInfo then
+            local okForced, forced = pcall(C_QuestLine.GetForceVisibleQuests, mapID)
+            if okForced and forced then
+                for _, questID in ipairs(forced) do
+                    local okInfo, info = pcall(C_QuestLine.GetQuestLineInfo, questID, mapID)
+                    if okInfo then
+                        AddOffer(info)
+                    end
+                end
+            end
+        end
+    end
+    if C_TaskQuest and C_TaskQuest.GetQuestsOnMap then
+        local tasks = C_TaskQuest.GetQuestsOnMap(mapID)
+        if tasks then
+            for _, info in ipairs(tasks) do
+                AddOffer(info)
+            end
+        end
+    end
+    if C_QuestLog.GetQuestsOnMap and C_QuestLog.ReadyForTurnIn then
+        local logQuests = C_QuestLog.GetQuestsOnMap(mapID)
+        if logQuests then
+            for _, info in ipairs(logQuests) do
+                if not info.isMapIndicatorQuest and not seen[info.questID]
+                    and C_QuestLog.ReadyForTurnIn(info.questID) then
+                    seen[info.questID] = true
                     AddQuestPoint(groups, info.questID, info.x, info.y)
                 end
             end
         end
     end
+
     cachedMapID = mapID
     cachedGroups = groups
     return groups
@@ -290,71 +321,88 @@ local function GroupBadgeKind(ids)
 end
 
 function AIW.RefreshMinimapOverlays()
-    minimapUsed = 0
-    if not Minimap then
-        print("AIW minimap: Minimap frame missing")
-        HideUnusedMinimapBadges()
-        return
+    if true then
+        return -- Disabled for now till we will not figure out the all exclamation marks (quest) coverage
     end
-    if not AIW.IsEnabled() then
-        print("AIW minimap: Addon not enabled")
-        HideUnusedMinimapBadges()
-        return
+    minimapUsed = 0
+    if not Minimap or not AIW.IsEnabled() then
+    HideUnusedMinimapBadges()
+    return
     end
     local mapID = C_Minimap.GetUiMapID and C_Minimap.GetUiMapID() or C_Map.GetBestMapForUnit("player")
     if not mapID then
-        print("AIW minimap: No mapID")
-        HideUnusedMinimapBadges()
+    HideUnusedMinimapBadges()
+    return
+    end
+    local player = C_Map.GetPlayerMapPosition(mapID, "player")
+    local yardsW, yardsH = C_Map.GetMapWorldSize(mapID)
+    local radius = C_Minimap.GetViewRadius and C_Minimap.GetViewRadius()
+    if not player or not yardsW or yardsW == 0 or not radius or radius <= 0 then
+    AIW.Debug("minimap: no player/world size/view radius on map %s", tostring(mapID))
+    HideUnusedMinimapBadges()
+    return
+    end
+    local half = Minimap:GetWidth() / 2
+    local edge = half - (BADGE_SIZE / 2)
+    local groups = CollectMinimapQuestGroups(mapID)
+    local groupCount, offMinimap = 0, 0
+    for _, group in pairs(groups) do
+    groupCount = groupCount + 1
+    local kind = GroupBadgeKind(group.ids)
+    if kind then
+    local px, py = MapPosToMinimapOffset(mapID, player, yardsW, yardsH, radius, group.x, group.y)
+    if px and (px * px + py * py) <= (edge * edge) then
+    local badge = AcquireMinimapBadge()
+    badge:SetTexture(BADGE_TEXTURE[kind])
+    badge:ClearAllPoints()
+    badge:SetPoint("CENTER", Minimap, "CENTER", px, py)
+    badge:Show()
+    else
+    offMinimap = offMinimap + 1
+    end
+    end
+    end
+    AIW.Debug("minimap: map %s, %d groups, %d badges, %d off minimap",
+    tostring(mapID), groupCount, minimapUsed, offMinimap)
+    HideUnusedMinimapBadges()
+    end
+
+-- One-shot diagnostics for the owner: the summary line cannot tell a quest that
+-- was never collected from one whose offset landed outside the minimap. Runs on
+-- demand only, never from the OnUpdate pass.
+function AIW.DumpMinimap()
+    local mapID = C_Minimap.GetUiMapID and C_Minimap.GetUiMapID() or C_Map.GetBestMapForUnit("player")
+    if not Minimap or not mapID then
+        AIW.Print("dump: no minimap or map id")
         return
     end
     local player = C_Map.GetPlayerMapPosition(mapID, "player")
     local yardsW, yardsH = C_Map.GetMapWorldSize(mapID)
     local radius = C_Minimap.GetViewRadius and C_Minimap.GetViewRadius()
-    print(string.format("AIW minimap: mapID=%s player=%s yardsW=%s yardsH=%s radius=%s",
-        tostring(mapID),
-        player and "yes" or "nil",
-        tostring(yardsW),
-        tostring(yardsH),
-        tostring(radius)))
     if not player or not yardsW or yardsW == 0 or not radius or radius <= 0 then
-        print("AIW minimap: Missing player/yards/radius")
-        HideUnusedMinimapBadges()
+        AIW.Print(string.format("dump: map %s has no player/world size/view radius", tostring(mapID)))
         return
     end
-    local half = Minimap:GetWidth() / 2
-    local edge = half - (BADGE_SIZE / 2)
+    local edge = (Minimap:GetWidth() / 2) - (BADGE_SIZE / 2)
+    local px, py = player:GetXY()
+    AIW.Print(string.format("dump: map %s player %.3f,%.3f yards %.0fx%.0f radius %.1f edge %.0f",
+        tostring(mapID), px, py, yardsW, yardsH, radius, edge))
     local groups = CollectMinimapQuestGroups(mapID)
-    local groupCount = 0
-    for _ in pairs(groups) do
-        groupCount = groupCount + 1
-    end
-    print(string.format("AIW minimap: %d quest groups found", groupCount))
-    if groupCount == 0 then
-        HideUnusedMinimapBadges()
-        return
-    end
-    local badgeCount = 0
     for _, group in pairs(groups) do
-        local kind = GroupBadgeKind(group.ids)
-        print(string.format("AIW minimap: group at %.2f,%.2f with %d quests, kind=%s",
-            group.x, group.y, #group.ids, tostring(kind)))
-        if kind then
-            local px, py = MapPosToMinimapOffset(mapID, player, yardsW, yardsH, radius, group.x, group.y)
-            if px and (px * px + py * py) <= (edge * edge) then
-                local badge = AcquireMinimapBadge()
-                badge:SetTexture(BADGE_TEXTURE[kind])
-                badge:ClearAllPoints()
-                badge:SetPoint("CENTER", Minimap, "CENTER", px, py)
-                badge:Show()
-                badgeCount = badgeCount + 1
-                print(string.format("AIW minimap: badge %d created at %d,%d", badgeCount, px, py))
-            else
-                print(string.format("AIW minimap: position outside minimap (px=%s py=%s edge=%d)", tostring(px), tostring(py), edge))
-            end
+        local parts = {}
+        for _, questID in ipairs(group.ids) do
+            local patch = AIW.QuestPatch(questID)
+            parts[#parts + 1] = string.format("%d[%s%s]", questID,
+                patch and AIW.FormatPatchCode(patch) or "?",
+                AIW.IsInRange(questID) and " in" or "")
         end
+        local kind = GroupBadgeKind(group.ids)
+        local ox, oy = MapPosToMinimapOffset(mapID, player, yardsW, yardsH, radius, group.x, group.y)
+        local onMinimap = ox and (ox * ox + oy * oy) <= (edge * edge)
+        AIW.Print(string.format("dump: %.3f,%.3f kind=%s off=%.0f,%.0f %s %s",
+            group.x, group.y, tostring(kind), ox or 0, oy or 0,
+            onMinimap and "ON" or "OUT", table.concat(parts, " ")))
     end
-    print(string.format("AIW minimap: %d badges shown", badgeCount))
-    HideUnusedMinimapBadges()
 end
 
 function AIW.RefreshMapOverlays()

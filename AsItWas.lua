@@ -405,6 +405,21 @@ function AIW.Print(msg)
     print("|cff66ccffAs It Was|r:", msg)
 end
 
+-- Diagnostics only. Off by default and the first line returns before any
+-- string work, because the minimap pass runs from OnUpdate.
+function AIW.Debug(fmt, ...)
+    if not AsItWasDB or not AsItWasDB.debug then
+        return
+    end
+    print("|cff66ccffAIW|r " .. string.format(fmt, ...))
+end
+
+function AIW.ToggleDebug()
+    AIW.EnsureDB()
+    AsItWasDB.debug = not AsItWasDB.debug
+    AIW.Print(AsItWasDB.debug and "debug on" or "debug off")
+end
+
 -- Same family as MinimapZoneText (GameFontNormal / Friz), one step smaller:
 -- GameFontNormalSmall = SystemFont_Shadow_Small = Fonts\FRIZQT__.TTF height 10.
 local hudButton
@@ -428,7 +443,7 @@ local function CreateFilterHud()
         return
     end
     local button = CreateFrame("Button", "AsItWasMinimapFilter", MinimapCluster)
-    button:SetPoint("TOPLEFT", MinimapCluster.ZoneTextButton, "BOTTOMLEFT", 0, -1)
+    button:SetPoint("TOPLEFT", MinimapCluster.ZoneTextButton, "BOTTOMLEFT", 0, -3)
     button:SetHeight(12)
     local text = button:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     text:SetPoint("LEFT", button, "LEFT", 0, 0)
@@ -459,6 +474,11 @@ boot:SetScript("OnEvent", function(_, event, name)
     if event == "ADDON_LOADED" and name == ADDON_NAME then
         AIW.EnsureDB()
         AIW.GetFilterOptions()
+        -- Blizzard_Minimap is not LoadOnDemand, so ContinueOnAddOnLoaded runs
+        -- CreateFilterHud while this file is still executing (EventUtil.lua:69),
+        -- before SavedVariables exist. The caption was therefore built from the
+        -- default Off and stayed hidden until the filter changed.
+        UpdateFilterHud()
     elseif event == "PLAYER_LOGIN" then
         AIW.EnsureDB()
         CreateFilterHud()
@@ -495,7 +515,11 @@ SlashCmdList.ASITWAS = function(msg)
         AIW.EnsureDB()
         AsItWasDB.seenSetup = false
         AIW.ShowFirstRun()
+    elseif msg == "debug" then
+        AIW.ToggleDebug()
+    elseif msg == "debug map" then
+        AIW.DumpMinimap()
     else
-        AIW.Print("/aiw options  /aiw setup  /aiw abandon")
+        AIW.Print("/aiw options  /aiw setup  /aiw abandon  /aiw debug  /aiw debug map")
     end
 end

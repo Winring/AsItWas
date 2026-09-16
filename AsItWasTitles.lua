@@ -22,15 +22,32 @@ local function WrapDecorate()
     end
 end
 
+-- CreateFromMixins copies methods, so the derived gossip mixins already hold
+-- their own UpdateTitleForQuest by the time we load (GossipFrameShared.lua:44,
+-- GossipFrame.lua:35). Wrapping only the shared one never reaches the buttons.
+local GOSSIP_MIXINS = {
+    "GossipSharedQuestButtonMixin",
+    "GossipSharedAvailableQuestButtonMixin",
+    "GossipSharedActiveQuestButtonMixin",
+    "GossipQuestButtonMixin",
+    "GossipAvailableQuestButtonMixin",
+    "GossipActiveQuestButtonMixin",
+}
+
+local wrappedGossipMixins = {}
+
 local function WrapGossip()
-    if hooked.gossip or not GossipSharedQuestButtonMixin or not GossipSharedQuestButtonMixin.UpdateTitleForQuest then
-        return
+    for _, name in ipairs(GOSSIP_MIXINS) do
+        local mixin = _G[name]
+        if mixin and not wrappedGossipMixins[name] and rawget(mixin, "UpdateTitleForQuest") then
+            wrappedGossipMixins[name] = true
+            local original = mixin.UpdateTitleForQuest
+            mixin.UpdateTitleForQuest = function(self, questID, titleText, isIgnored, isTrivial)
+                original(self, questID, AIW.MarkTitle(questID, titleText), isIgnored, isTrivial)
+            end
+        end
     end
     hooked.gossip = true
-    local original = GossipSharedQuestButtonMixin.UpdateTitleForQuest
-    function GossipSharedQuestButtonMixin.UpdateTitleForQuest(self, questID, titleText, isIgnored, isTrivial)
-        original(self, questID, AIW.MarkTitle(questID, titleText), isIgnored, isTrivial)
-    end
 end
 
 local function PrefixGreetingButtons()
@@ -120,9 +137,19 @@ local function DecorateTrackerBlock(module, questID, title)
     if not block or not block.HeaderText then
         return
     end
-    local marked = AIW.MarkTitle(questID, title or block.HeaderText:GetText())
-    if marked then
-        block.HeaderText:SetText(marked)
+    local current = block.HeaderText:GetText()
+    local marked = AIW.MarkTitle(questID, title or current)
+    if not marked or marked == current then
+        return
+    end
+    -- Objective lines anchor to HeaderText (ObjectiveTrackerBlock.lua:192), so
+    -- they follow on their own. Only the block height was measured before the
+    -- prefix went in, so carry the difference over.
+    local before = block.HeaderText:GetHeight()
+    block.HeaderText:SetText(marked)
+    local delta = block.HeaderText:GetHeight() - before
+    if delta ~= 0 then
+        block:SetHeight(block:GetHeight() + delta)
     end
 end
 
@@ -172,6 +199,19 @@ local function WrapTracker()
     end)
 end
 
+-- ObjectiveTrackerManager:UpdateAll is a dirty update: a module that is not
+-- marked dirty keeps its cached layout and never runs UpdateSingle again
+-- (ObjectiveTrackerModule.lua:134). Without this the titles only appear after
+-- something else dirties the tracker.
+local function MarkTrackerModulesDirty()
+    for _, name in ipairs(TRACKER_FRAMES) do
+        local frame = _G[name]
+        if frame and frame.MarkDirty then
+            frame:MarkDirty()
+        end
+    end
+end
+
 function AIW.RefreshTitles()
     WrapDecorate()
     WrapGossip()
@@ -184,6 +224,7 @@ function AIW.RefreshTitles()
     end
     if ObjectiveTrackerManager and ObjectiveTrackerManager.UpdateAll then
         pcall(function()
+            MarkTrackerModulesDirty()
             ObjectiveTrackerManager:UpdateAll()
         end)
     end

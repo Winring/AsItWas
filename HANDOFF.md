@@ -24,19 +24,18 @@ Where to look, in order of authority:
    branch `live`. Keep a **local clone** and grep that. Do **not** clone the whole tree every
    session.
 
-   ```bash
-   CLONE=/tmp/wowui
-   if [ -d "$CLONE/.git" ]; then
-     git -C "$CLONE" fetch --depth 1 origin live
-     git -C "$CLONE" checkout --detach origin/live
-   else
-     git clone --depth 1 --branch live https://github.com/Gethe/wow-ui-source "$CLONE"
-   fi
+   The clone lives at **`E:\Tvorba Her\Addony\wow-ui-source`** (owner's machine, PowerShell).
+   Moved there on 16 September 2026 out of `%TEMP%\wowui`, which Windows cleanup can wipe.
+
+   ```powershell
+   $CLONE = 'E:\Tvorba Her\Addony\wow-ui-source'
+   git -C $CLONE fetch --depth 1 origin live
+   git -C $CLONE checkout --detach origin/live
    ```
 
-   Prefer `/tmp/wowui`. If an older session used `/tmp/wowui-live`, reuse that instead of a second
-   clone. **Never re-clone if `/tmp/wowui` already has `.git` — fetch/reset only.** The owner has
-   already said not to clone wow-ui again when it is there.
+   **Never re-clone if that folder already has `.git` — fetch/reset only.** The owner has
+   already said not to clone wow-ui again when it is there. Only if the folder is gone:
+   `git clone --depth 1 --branch live https://github.com/Gethe/wow-ui-source $CLONE`.
 
    Generated API docs: `Interface/AddOns/Blizzard_APIDocumentationGenerated/`. Usage:
    `Interface/AddOns/Blizzard_*`. How Blizzard calls a function beats wiki and training data.
@@ -51,11 +50,27 @@ Where to look, in order of authority:
    * POI / map pins — `POIButtonMixin`, `QuestOfferPinMixin`, `QuestHubPinMixin`,
      `WorldQuestPinMixin`, `BonusObjectivePinMixin`
    * Gossip / greeting — `GossipSharedQuestButtonMixin.UpdateTitleForQuest`,
-     `QuestFrameGreetingPanel_OnShow`
+     `QuestFrameGreetingPanel_OnShow`. **`CreateFromMixins` copies methods**, so
+     `GossipSharedAvailableQuestButtonMixin`, `GossipSharedActiveQuestButtonMixin` and the
+     Mainline `Gossip*QuestButtonMixin` tables already hold their own copy when the addon
+     loads. Wrapping only the shared table never reaches a single button.
    * Quest titles — `QuestUtils_DecorateQuestText` (log + details),
-     `ObjectiveTrackerBlockMixin:SetHeader`
+     `ObjectiveTrackerBlockMixin:SetHeader` (called from
+     `QuestObjectiveTrackerMixin:UpdateSingle`). Same copy problem: hook the live module
+     frames (`QuestObjectiveTracker`, `CampaignQuestObjectiveTracker`, …), not the mixin.
+     `ObjectiveTrackerManager:UpdateAll` is a **dirty** update — a module that is not
+     `MarkDirty()` keeps its cached layout and never re-runs `UpdateSingle`
+     (`Blizzard_ObjectiveTrackerModule.lua:134`).
    * Minimap overlay — `C_Minimap.GetViewRadius`, `UnitPosition`,
      `C_Map.GetWorldPosFromMapPos`, `GetPlayerFacing` / `rotateMinimap`
+   * Which quests actually get an icon — `QuestOfferDataProviderMixin:GetAllQuestOffersForMap`
+     (`Blizzard_SharedMapDataProviders/QuestOfferDataProvider.lua`): quest lines
+     (`C_QuestLine.GetAvailableQuestLines`), **force-visible**
+     (`C_QuestLine.GetForceVisibleQuests` + `GetQuestLineInfo`), then
+     `C_TaskQuest.GetQuestsOnMap`, filtered by `ShouldAddQuestOffer` (`inProgress`,
+     foreign `startMapID`, `isHidden` without `C_Minimap.IsTrackingHiddenQuests`).
+     `C_QuestLog.GetQuestsOnMap` is **accepted** quests only — those draw a blob, not a
+     bang, so read it for `C_QuestLog.ReadyForTurnIn` markers only.
    * `Enum.QuestClassification` — pin art only; filter is always `questID`
 
 2. **wago.tools** for the quest→patch table, not for Lua API. Retail live `wow` DB2 CSVs
@@ -71,7 +86,8 @@ in an earlier session; the builder uses `curl`.
 
 ### Versions — re-verify at the start of every session
 
-* Last UI clone used for API greps: **12.1.0.69587**. `.toc` is `## Interface: 120100`. Five-digit
+* Local UI clone currently at **12.1.0.69814** (commit `4e3cbb8`, 12 September 2026, branch `live`,
+  `version.txt`). `.toc` is `## Interface: 120100`. Five-digit
   scheme: major, two digits minor, two digits patch. Wiki `LatestPatchInfo` can lag.
 * Last quest table snapshot: **12.1.0.69814** (`data/quest_patches_meta.json`). Those two build
   numbers can differ; Interface follows the client the owner plays, the table follows newest wago
@@ -102,7 +118,11 @@ Copy the whole folder (lua + `textures/`) and `/reload`.
 * HUD caption under minimap zone text (`GameFontNormalSmall`). Off hides it. Click opens Options.
 * Map/minimap pin badges: `textures/newer.png` (later), `textures/older.png` (earlier, when Include
   older is off), `INV_Misc_QuestionMark` (unknown). Minimap bangs are engine-drawn; overlay uses
-  `GetViewRadius` every 0.05s and instance-space facing when rotate-minimap is on.
+  `GetViewRadius` every 0.05s and instance-space facing when rotate-minimap is on. The minimap
+  pass collects the same offers Blizzard's own provider does, plus turn-ins.
+* `/aiw debug` toggles a diagnostic channel (`AsItWasDB.debug`, off by default). `AIW.Debug`
+  returns before any `string.format`, because the minimap pass runs from `OnUpdate`. Never leave
+  bare `print` in that path.
 * Titles (quest log on the map, quest details, tracker, gossip, greeting, progress): expansion chip
   + `X.Y.Z` + name. Out of range adds Blizzard's warning icon. World-map pin tooltips use the
   up/down arrows instead of the warning. Unknown IDs: `?` + `[?]`.
@@ -236,7 +256,7 @@ the work to an agent in git.
 
 ## Owner's conventions
 
-* Verify Lua against `/tmp/wowui`, never from memory.
+* Verify Lua against `E:\Tvorba Her\Addony\wow-ui-source`, never from memory.
 * Keep a change coherent with the surrounding file; do not refactor unrelated code.
 * No recursive functions.
 * Comments: constraint or reasoning the code cannot show, full sentences. No narration of the next
