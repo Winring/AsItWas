@@ -1,0 +1,114 @@
+Message: GetAuraDataByIndex(): Auras cannot be accessed when secret while tainted by 'AsItWas'
+Lua Taint: AsItWas
+Time: Sun Sep 20 09:24:25 2026
+Count: 1
+Stack:
+[Interface/AddOns/Blizzard_MawBuffs/Blizzard_MawBuffs.lua]:4: in function 'ShouldShowMawBuffs'
+[Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ScenarioObjectiveTracker.lua]:187: in function 'LayoutContents'
+[Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ObjectiveTrackerModule.lua]:147: in function 'Update'
+[Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ObjectiveTrackerContainer.lua]:64: in function <...ectiveTracker/Blizzard_ObjectiveTrackerContainer.lua:49>
+[C]: in function 'Update'
+[Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ObjectiveTracker.lua]:50: in function <...zzard_ObjectiveTracker/Blizzard_ObjectiveTracker.lua:42>
+[tail call]: ?
+[Interface/AddOns/Blizzard_SharedXML/MixinUtil.lua]:341: in function <Interface/AddOns/Blizzard_SharedXML/MixinUtil.lua:340>
+
+Locals:
+
+
+
+
+
+
+
+
+Message: ...UIWidgets/Blizzard_UIWidgetTemplateTextWithState.lua:35: attempt to perform arithmetic on local 'textHeight' (a secret number value, while execution tainted by 'AsItWas')
+Time: Sun Sep 20 09:44:21 2026
+Count: 1
+Stack:
+[Interface/AddOns/Blizzard_UIWidgets/Blizzard_UIWidgetTemplateTextWithState.lua]:35: in function 'Setup'
+[Interface/AddOns/Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:526: in function 'ProcessWidget'
+[Interface/AddOns/Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:562: in function 'ProcessAllWidgets'
+[Interface/AddOns/Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:275: in function 'RegisterForWidgetSet'
+[Interface/AddOns/Blizzard_GameTooltip/Mainline/GameTooltip.lua]:602: in function 'GameTooltip_AddWidgetSet'
+[Interface/AddOns/Blizzard_FrameXMLUtil/AreaPoiUtil.lua]:44: in function <...terface/AddOns/Blizzard_FrameXMLUtil/AreaPoiUtil.lua:3>
+[tail call]: ?
+[Interface/AddOns/Blizzard_SharedMapDataProviders/AreaPOIDataProvider.lua]:166: in function <...zzard_SharedMapDataProviders/AreaPOIDataProvider.lua:159>
+[C]: ?
+[C]: ?
+
+Locals:
+self=Frame <Blizzard_UIWidgetManager.lua:432>{
+ tooltipLoc=0
+ tooltipYOffset=0
+ widgetType=8
+ tooltipContainsHyperLink=false
+ tooltip=""
+ widgetID=7420
+ widgetContainer=Frame <GameTooltip.lua:594>
+ tooltipAnchor="ANCHOR_BOTTOMLEFT"
+ FadeInAnim=AnimationGroup <Blizzard_UIWidgetTemplateBase.xml:16>
+ disableTooltip=true
+ scriptedAnimationEffectID=0
+ modelSceneLayer=0
+ layoutDirection=0
+ outAnimType=0
+ inAnimType=0
+ widgetTag=""
+ orderIndex=0
+ widgetSetID=1802
+ defaultTooltipAnchor="ANCHOR_BOTTOMLEFT"
+ hasTimer=false
+ FadeOutAnim=AnimationGroup <Blizzard_UIWidgetTemplateBase.xml:23>
+ Text=FontString <Blizzard_UIWidgetTemplateTextWithState.xml:7>
+ tooltipXOffset=0
+}
+widgetInfo=<table>{
+ scriptedAnimationEffectID=0
+ modelSceneLayer=0
+ widgetScale=0
+ tooltipLoc=0
+ fontType=0
+ shownState=1
+ widgetSizeSetting=250
+ bottomPadding=0
+ enabledState=1
+ textSizeType=0
+ text="Story Variant: Totem Annihilation"
+ orderIndex=0
+ layoutDirection=0
+ inAnimType=0
+ widgetTag=""
+ hasTimer=false
+ outAnimType=0
+ tooltip=""
+ hAlign=0
+}
+widgetContainer=Frame <GameTooltip.lua:594>{
+ horizontalAnchorXOffset=2
+ verticalAnchorPoint="TOPLEFT"
+ disableWidgetTooltips=true
+ widgetFrames=<table>
+ horizontalRelativePoint="RIGHT"
+ verticalAnchorYOffset=0
+ shownWidgetCount=0
+ dirty=false
+ widgetSetLayoutDirection=0
+ numWidgetsShowing=0
+ numTimers=0
+ timerWidgets=<table>
+ horizontalRowContainerPool=<table>
+ widgetPools=<table>
+ BackModelScene=ModelScene <Blizzard_UIWidgetManager.xml:46>
+ FrontModelScene=ModelScene <Blizzard_UIWidgetManager.xml:33>
+ verticalRelativePoint="BOTTOMLEFT"
+ widgetSetID=1802
+ horizontalAnchorPoint="LEFT"
+ showAndHideOnWidgetSetRegistration=false
+}
+textHeight=<secret number>
+(*temporary)=0
+(*temporary)=0
+(*temporary)=0
+(*temporary)=1
+(*temporary)=0
+(*temporary)="attempt to perform arithmetic on local 'textHeight' (a secret number value, while execution tainted by 'AsItWas')"
