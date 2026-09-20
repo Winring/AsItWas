@@ -61,6 +61,13 @@ Where to look, in order of authority:
      `ObjectiveTrackerManager:UpdateAll` is a **dirty** update — a module that is not
      `MarkDirty()` keeps its cached layout and never re-runs `UpdateSingle`
      (`Blizzard_ObjectiveTrackerModule.lua:134`).
+   * Dialogue UI — the live `DUIQuestFrame` copies `DUIDialogBaseMixin` methods from
+     `Code/Dialogue/DialogueUI.xml`. Hook `DUIQuestFrame:UpdateQuestTitle()` and
+     `DUIQuestFrame:HandleGossip()` after the addon is loaded; do not hook only the mixin,
+     because XML mixins copy methods onto the live frame. Dialogue UI must use the same
+     `AIW.MarkTitle()` formatter as Blizzard UI, not a title produced by or extracted from
+     Blizzard UI. The hook decorates the detail title and active quest buttons without
+     changing Dialogue UI files or click behaviour. Source addon: `Peterodox/YUI-Dialogue`.
    * Minimap overlay — `C_Minimap.GetViewRadius`, `UnitPosition`,
      `C_Map.GetWorldPosFromMapPos`, `GetPlayerFacing` / `rotateMinimap`
    * Which quests actually get an icon — `QuestOfferDataProviderMixin:GetAllQuestOffersForMap`
@@ -123,9 +130,11 @@ Copy the whole folder (lua + `textures/`) and `/reload`.
 * `/aiw debug` toggles a diagnostic channel (`AsItWasDB.debug`, off by default). `AIW.Debug`
   returns before any `string.format`, because the minimap pass runs from `OnUpdate`. Never leave
   bare `print` in that path.
-* Titles (quest log on the map, quest details, tracker, gossip, greeting, progress): expansion chip
-  + `X.Y.Z` + name. Out of range adds Blizzard's warning icon. World-map pin tooltips use the
-  up/down arrows instead of the warning. Unknown IDs: `?` + `[?]`.
+* Titles (quest log on the map, quest details, tracker, gossip, greeting, progress, and Dialogue UI):
+  expansion chip + `X.Y.Z` + name. Out of range adds Blizzard's warning icon. World-map pin
+  tooltips use the up/down arrows instead of the warning. Unknown IDs: `?` + `[?]`. All title
+  integrations call the single `AIW.MarkTitle()` formatter; UI-specific hooks only adapt each
+  renderer's API.
 * Expansion chips: `textures/chips/{legion,bfa,sl,df,tww,mn}.png` (AI wordmarks, sliced by alpha,
   not `width/6`).
 * Auto-accept: `QUEST_ACCEPTED` chat mark only.
@@ -205,7 +214,7 @@ Loaded by the toc (order matters):
 | `data/PatchList.lua` | generated snapshot list; UI builds dropdown rows at runtime |
 | `AsItWas.lua` | filter math, DB, slash, first-run trigger, HUD, title prefix |
 | `AsItWasMap.lua` | map/minimap era badges |
-| `AsItWasTitles.lua` | log / tracker / gossip / greeting / map-tooltip titles |
+| `AsItWasTitles.lua` | Blizzard and Dialogue UI titles: log / tracker / gossip / greeting / progress / map-tooltip |
 | `AsItWasLog.lua` | mass abandon + `QUEST_ACCEPTED` print |
 | `AsItWasOptions.lua` | first-run frame, Settings canvas, quest-log menu hook |
 | `textures/newer.png`, `older.png` | pin arrows |
