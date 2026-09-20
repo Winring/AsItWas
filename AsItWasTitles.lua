@@ -5,11 +5,59 @@ local _, AIW = ...
 
 local hooked = {
     decorate = false,
+    dialogue = false,
     gossip = false,
     greeting = false,
     progress = false,
     tracker = false,
 }
+
+local function DecorateDialogueTitle(dialogue)
+    local questID = dialogue and dialogue.questID
+    local header = dialogue and dialogue.FrontFrame and dialogue.FrontFrame.Header
+    local title = header and header.Title
+    if questID and title then
+        title:SetText(AIW.MarkTitle(questID, title:GetText()))
+    end
+end
+
+local function DecorateDialogueQuestButtons(dialogue)
+    local pool = dialogue and dialogue.optionButtonPool
+    if not pool or not pool.ProcessActiveObjects then
+        return
+    end
+
+    pool:ProcessActiveObjects(function(button)
+        if button.IsQuestButton and button:IsQuestButton() and button.questID and button.Name then
+            button:SetButtonText(AIW.MarkTitle(button.questID, button.Name:GetText()), true)
+        end
+    end)
+end
+
+local function WrapDialogue()
+    if hooked.dialogue then
+        return
+    end
+
+    local dialogue = DUIQuestFrame
+    if not dialogue or not dialogue.UpdateQuestTitle or not dialogue.FrontFrame then
+        return
+    end
+
+    hooked.dialogue = true
+    hooksecurefunc(dialogue, "UpdateQuestTitle", function(self)
+        DecorateDialogueTitle(self)
+    end)
+    if dialogue.HandleGossip then
+        hooksecurefunc(dialogue, "HandleGossip", function(self)
+            DecorateDialogueQuestButtons(self)
+        end)
+    end
+    if dialogue:IsShown() then
+        DecorateDialogueTitle(dialogue)
+        DecorateDialogueQuestButtons(dialogue)
+    end
+end
 
 local function WrapDecorate()
     if hooked.decorate or not QuestUtils_DecorateQuestText then
@@ -214,6 +262,7 @@ end
 
 function AIW.RefreshTitles()
     WrapDecorate()
+    WrapDialogue()
     WrapGossip()
     WrapGreeting()
     WrapProgress()
@@ -274,6 +323,7 @@ local function HookMapTooltips()
 end
 
 WrapDecorate()
+WrapDialogue()
 HookMapTooltips()
 EventUtil.ContinueOnAddOnLoaded("Blizzard_UIPanels_Game", function()
     WrapGossip()
@@ -283,5 +333,6 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_UIPanels_Game", function()
 end)
 EventUtil.ContinueOnAddOnLoaded("Blizzard_SharedMapDataProviders", HookMapTooltips)
 EventUtil.ContinueOnAddOnLoaded("Blizzard_ObjectiveTracker", WrapTracker)
+EventUtil.ContinueOnAddOnLoaded("DialogueUI", WrapDialogue)
 
 AIW.OnFilterChanged(AIW.RefreshTitles)
