@@ -256,6 +256,28 @@ local TRACKER_FRAMES = {
 }
 
 local wrappedTrackerFrames = {}
+local objectiveTrackerAuraGuardApplied = false
+
+-- Blizzard's objective-tracker check reads a restricted aura without a guard.
+-- MAW is only the function name in the stack; the restriction also affects
+-- unrelated Midnight event/scenario layouts.
+local function ApplyObjectiveTrackerAuraGuard()
+    if objectiveTrackerAuraGuardApplied or type(ShouldShowMawBuffs) ~= "function" then
+        return
+    end
+    if not C_Secrets or not C_Secrets.ShouldAurasBeSecret then
+        return
+    end
+
+    objectiveTrackerAuraGuardApplied = true
+    local original = ShouldShowMawBuffs
+    ShouldShowMawBuffs = function()
+        if C_Secrets.ShouldAurasBeSecret() then
+            return false
+        end
+        return original()
+    end
+end
 
 local function DecorateTrackerBlock(module, questID, title)
     if not questID or not module or not module.GetExistingBlock then
@@ -285,6 +307,7 @@ end
 -- ObjectiveTrackerBlockMixin.SetHeader does not run on those copies.
 -- Hook the live module frames instead (QuestObjectiveTracker.lua:280).
 local function WrapTracker()
+    ApplyObjectiveTrackerAuraGuard()
     for _, name in ipairs(TRACKER_FRAMES) do
         local frame = _G[name]
         if frame and not wrappedTrackerFrames[name] then
@@ -335,7 +358,7 @@ local function MarkTrackerModulesDirty()
     for _, name in ipairs(TRACKER_FRAMES) do
         local frame = _G[name]
         if frame and frame.MarkDirty then
-            frame:MarkDirty()
+            securecallfunction(frame.MarkDirty, frame)
         end
     end
 end
@@ -354,10 +377,8 @@ function AIW.RefreshTitles()
         pcall(QuestLogQuests_Update)
     end
     if ObjectiveTrackerManager and ObjectiveTrackerManager.UpdateAll then
-        pcall(function()
-            MarkTrackerModulesDirty()
-            ObjectiveTrackerManager:UpdateAll()
-        end)
+        MarkTrackerModulesDirty()
+        securecallfunction(ObjectiveTrackerManager.UpdateAll, ObjectiveTrackerManager)
     end
     if GossipFrame and GossipFrame.Update and GossipFrame:IsShown() then
         pcall(function()
