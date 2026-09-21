@@ -4,7 +4,6 @@ local _, AIW = ...
 -- we change the string it is given, then let it draw.
 
 local hooked = {
-    decorate = false,
     dialogue = false,
     gossip = false,
     greeting = false,
@@ -59,10 +58,6 @@ local function WrapDialogue()
     end
 end
 
-local function WrapDecorate()
-    -- QuestUtils_DecorateQuestText is unsafe to replace or hook in WoW 12.
-end
-
 local questLogHooked = false
 local function PrefixQuestLogRows()
     local pool = QuestScrollFrame and QuestScrollFrame.titleFramePool
@@ -81,6 +76,18 @@ local function PrefixQuestLogRows()
 end
 
 local questInfoHooked = false
+local function SetMarkedTitle(title, questID)
+    if not title or not questID then
+        return
+    end
+
+    local current = title:GetText()
+    local marked = AIW.MarkTitle(questID, current)
+    if marked ~= current then
+        title:SetText(marked)
+    end
+end
+
 local function PrefixQuestInfoTitle()
     if not QuestInfoTitleHeader then
         return
@@ -99,11 +106,7 @@ local function PrefixQuestInfoTitle()
         return
     end
 
-    local current = QuestInfoTitleHeader:GetText()
-    local marked = AIW.MarkTitle(questID, current)
-    if marked ~= current then
-        QuestInfoTitleHeader:SetText(marked)
-    end
+    SetMarkedTitle(QuestInfoTitleHeader, questID)
 end
 
 local questLogPopupHooked = false
@@ -120,11 +123,7 @@ local function PrefixQuestLogPopupTitle()
         return
     end
 
-    local current = QuestInfoTitleHeader:GetText()
-    local marked = AIW.MarkTitle(questID, current)
-    if marked ~= current then
-        QuestInfoTitleHeader:SetText(marked)
-    end
+    SetMarkedTitle(QuestInfoTitleHeader, questID)
 end
 
 local function WrapQuestLog()
@@ -365,6 +364,12 @@ function AIW.RefreshTitles()
             GossipFrame:Update()
         end)
     end
+    if DUIQuestFrame and DUIQuestFrame:IsShown() then
+        pcall(function()
+            DecorateDialogueTitle(DUIQuestFrame)
+            DecorateDialogueQuestButtons(DUIQuestFrame)
+        end)
+    end
     if QuestFrameGreetingPanel and QuestFrameGreetingPanel:IsShown() then
         PrefixGreetingButtons()
     end
@@ -373,6 +378,9 @@ function AIW.RefreshTitles()
     end
     if QuestInfoTitleHeader and QuestInfoTitleHeader:IsVisible() then
         pcall(PrefixQuestInfoTitle)
+    end
+    if QuestLogPopupDetailFrame and QuestLogPopupDetailFrame:IsShown() then
+        pcall(PrefixQuestLogPopupTitle)
     end
 end
 
@@ -423,39 +431,4 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_SharedMapDataProviders", HookMapToolti
 EventUtil.ContinueOnAddOnLoaded("Blizzard_ObjectiveTracker", WrapTracker)
 EventUtil.ContinueOnAddOnLoaded("DialogueUI", WrapDialogue)
 
-AIW.OnFilterChanged(function()
-    WrapQuestLog()
-    WrapQuestInfo()
-    WrapQuestLogPopup()
-    WrapGossip()
-    WrapGreeting()
-    WrapProgress()
-    WrapTracker()
-    if QuestLogQuests_Update then
-        pcall(QuestLogQuests_Update)
-    end
-    if QuestInfoTitleHeader and QuestInfoTitleHeader:IsVisible() then
-        pcall(PrefixQuestInfoTitle)
-    end
-    if DUIQuestFrame and DUIQuestFrame:IsShown() then
-        pcall(function()
-            DecorateDialogueTitle(DUIQuestFrame)
-            DecorateDialogueQuestButtons(DUIQuestFrame)
-        end)
-    end
-    if GossipFrame and GossipFrame.Update and GossipFrame:IsShown() then
-        pcall(GossipFrame.Update, GossipFrame)
-    end
-    if QuestFrameGreetingPanel and QuestFrameGreetingPanel:IsShown() then
-        pcall(PrefixGreetingButtons)
-    end
-    if QuestFrameProgressPanel and QuestFrameProgressPanel:IsShown() then
-        pcall(PrefixProgressTitle)
-    end
-    if ObjectiveTrackerManager and ObjectiveTrackerManager.UpdateAll then
-        pcall(function()
-            MarkTrackerModulesDirty()
-            ObjectiveTrackerManager:UpdateAll()
-        end)
-    end
-end)
+AIW.OnFilterChanged(AIW.RefreshTitles)
