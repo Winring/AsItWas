@@ -129,7 +129,7 @@ local function RefreshCanvas(map)
     if not CanvasIsReady(map) then
         return
     end
-    map:RefreshAllDataProviders()
+    securecallfunction(map.RefreshAllDataProviders, map)
     if not map.EnumeratePinsByTemplate then
         return
     end

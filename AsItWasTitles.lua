@@ -60,14 +60,7 @@ local function WrapDialogue()
 end
 
 local function WrapDecorate()
-    if hooked.decorate or not QuestUtils_DecorateQuestText then
-        return
-    end
-    hooked.decorate = true
-    local original = QuestUtils_DecorateQuestText
-    function QuestUtils_DecorateQuestText(questID, text, ...)
-        return original(questID, AIW.MarkTitle(questID, text), ...)
-    end
+    -- QuestUtils_DecorateQuestText is unsafe to replace or hook in WoW 12.
 end
 
 -- CreateFromMixins copies methods, so the derived gossip mixins already hold
@@ -261,7 +254,6 @@ local function MarkTrackerModulesDirty()
 end
 
 function AIW.RefreshTitles()
-    WrapDecorate()
     WrapDialogue()
     WrapGossip()
     WrapGreeting()
@@ -322,7 +314,6 @@ local function HookMapTooltips()
     end
 end
 
-WrapDecorate()
 WrapDialogue()
 HookMapTooltips()
 EventUtil.ContinueOnAddOnLoaded("Blizzard_UIPanels_Game", function()
@@ -334,5 +325,3 @@ end)
 EventUtil.ContinueOnAddOnLoaded("Blizzard_SharedMapDataProviders", HookMapTooltips)
 EventUtil.ContinueOnAddOnLoaded("Blizzard_ObjectiveTracker", WrapTracker)
 EventUtil.ContinueOnAddOnLoaded("DialogueUI", WrapDialogue)
-
-AIW.OnFilterChanged(AIW.RefreshTitles)
