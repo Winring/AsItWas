@@ -107,6 +107,27 @@ local function PrefixQuestInfoTitle()
     end
 end
 
+local questLogPopupHooked = false
+local function PrefixQuestLogPopupTitle()
+    if not QuestInfoTitleHeader then
+        return
+    end
+
+    local questID = QuestLogPopupDetailFrame and QuestLogPopupDetailFrame.questID
+    if not questID and C_QuestLog and C_QuestLog.GetSelectedQuest then
+        questID = C_QuestLog.GetSelectedQuest()
+    end
+    if not questID then
+        return
+    end
+
+    local current = QuestInfoTitleHeader:GetText()
+    local marked = AIW.MarkTitle(questID, current)
+    if marked ~= current then
+        QuestInfoTitleHeader:SetText(marked)
+    end
+end
+
 local function WrapQuestLog()
     if questLogHooked or not QuestLogQuests_Update then
         return
@@ -121,6 +142,14 @@ local function WrapQuestInfo()
     end
     questInfoHooked = true
     hooksecurefunc("QuestInfo_Display", PrefixQuestInfoTitle)
+end
+
+local function WrapQuestLogPopup()
+    if questLogPopupHooked or not QuestLogPopupDetailFrame_Update then
+        return
+    end
+    questLogPopupHooked = true
+    hooksecurefunc("QuestLogPopupDetailFrame_Update", PrefixQuestLogPopupTitle)
 end
 
 -- CreateFromMixins copies methods, so the derived gossip mixins already hold
@@ -317,6 +346,7 @@ function AIW.RefreshTitles()
     WrapDialogue()
     WrapQuestLog()
     WrapQuestInfo()
+    WrapQuestLogPopup()
     WrapGossip()
     WrapGreeting()
     WrapProgress()
@@ -379,10 +409,12 @@ end
 WrapDialogue()
 WrapQuestLog()
 WrapQuestInfo()
+WrapQuestLogPopup()
 HookMapTooltips()
 EventUtil.ContinueOnAddOnLoaded("Blizzard_UIPanels_Game", function()
     WrapQuestLog()
     WrapQuestInfo()
+    WrapQuestLogPopup()
     WrapGossip()
     WrapGreeting()
     WrapProgress()
@@ -395,6 +427,7 @@ EventUtil.ContinueOnAddOnLoaded("DialogueUI", WrapDialogue)
 AIW.OnFilterChanged(function()
     WrapQuestLog()
     WrapQuestInfo()
+    WrapQuestLogPopup()
     WrapGossip()
     WrapGreeting()
     WrapProgress()
