@@ -63,6 +63,66 @@ local function WrapDecorate()
     -- QuestUtils_DecorateQuestText is unsafe to replace or hook in WoW 12.
 end
 
+local questLogHooked = false
+local function PrefixQuestLogRows()
+    local pool = QuestScrollFrame and QuestScrollFrame.titleFramePool
+    if not pool or not pool.EnumerateActive then
+        return
+    end
+    for button in pool:EnumerateActive() do
+        if button.questID and button.Text then
+            local current = button.Text:GetText()
+            local marked = AIW.MarkTitle(button.questID, current)
+            if marked ~= current then
+                button.Text:SetText(marked)
+            end
+        end
+    end
+end
+
+local questInfoHooked = false
+local function PrefixQuestInfoTitle()
+    if not QuestInfoTitleHeader then
+        return
+    end
+
+    local questID
+    if QuestInfoFrame and QuestInfoFrame.questLog then
+        local selection = GetQuestLogSelection and GetQuestLogSelection()
+        if selection and GetQuestLogTitle then
+            questID = select(8, GetQuestLogTitle(selection))
+        end
+    elseif GetQuestID then
+        questID = GetQuestID()
+    end
+
+    if not questID then
+        return
+    end
+
+    local current = QuestInfoTitleHeader:GetText()
+    local marked = AIW.MarkTitle(questID, current)
+    if marked ~= current then
+        QuestInfoTitleHeader:SetText(marked)
+    end
+end
+
+local function WrapQuestLog()
+    if questLogHooked or not QuestLogQuests_Update then
+        return
+    end
+    questLogHooked = true
+    hooksecurefunc("QuestLogQuests_Update", PrefixQuestLogRows)
+end
+
+local function WrapQuestInfo()
+    if questInfoHooked or not QuestInfo_Display then
+        return
+    end
+    questInfoHooked = true
+    hooksecurefunc("QuestInfo_Display", PrefixQuestInfoTitle)
+end
+
 -- CreateFromMixins copies methods, so the derived gossip mixins already hold
 -- their own UpdateTitleForQuest by the time we load (GossipFrameShared.lua:44,
 -- GossipFrame.lua:35). Wrapping only the shared one never reaches the buttons.
@@ -255,6 +315,8 @@ end
 
 function AIW.RefreshTitles()
     WrapDialogue()
+    WrapQuestLog()
+    WrapQuestInfo()
     WrapGossip()
     WrapGreeting()
     WrapProgress()
@@ -280,8 +342,8 @@ function AIW.RefreshTitles()
     if QuestFrameProgressPanel and QuestFrameProgressPanel:IsShown() then
         PrefixProgressTitle()
     end
-    if QuestInfo_ShowTitle and QuestInfoTitleHeader and QuestInfoTitleHeader:IsVisible() then
-        pcall(QuestInfo_ShowTitle)
+    if QuestInfoTitleHeader and QuestInfoTitleHeader:IsVisible() then
+        pcall(PrefixQuestInfoTitle)
     end
 end
 
@@ -315,8 +377,12 @@ local function HookMapTooltips()
 end
 
 WrapDialogue()
+WrapQuestLog()
+WrapQuestInfo()
 HookMapTooltips()
 EventUtil.ContinueOnAddOnLoaded("Blizzard_UIPanels_Game", function()
+    WrapQuestLog()
+    WrapQuestInfo()
     WrapGossip()
     WrapGreeting()
     WrapProgress()
@@ -325,3 +391,39 @@ end)
 EventUtil.ContinueOnAddOnLoaded("Blizzard_SharedMapDataProviders", HookMapTooltips)
 EventUtil.ContinueOnAddOnLoaded("Blizzard_ObjectiveTracker", WrapTracker)
 EventUtil.ContinueOnAddOnLoaded("DialogueUI", WrapDialogue)
+
+AIW.OnFilterChanged(function()
+    WrapQuestLog()
+    WrapQuestInfo()
+    WrapGossip()
+    WrapGreeting()
+    WrapProgress()
+    WrapTracker()
+    if QuestLogQuests_Update then
+        pcall(QuestLogQuests_Update)
+    end
+    if QuestInfoTitleHeader and QuestInfoTitleHeader:IsVisible() then
+        pcall(PrefixQuestInfoTitle)
+    end
+    if DUIQuestFrame and DUIQuestFrame:IsShown() then
+        pcall(function()
+            DecorateDialogueTitle(DUIQuestFrame)
+            DecorateDialogueQuestButtons(DUIQuestFrame)
+        end)
+    end
+    if GossipFrame and GossipFrame.Update and GossipFrame:IsShown() then
+        pcall(GossipFrame.Update, GossipFrame)
+    end
+    if QuestFrameGreetingPanel and QuestFrameGreetingPanel:IsShown() then
+        pcall(PrefixGreetingButtons)
+    end
+    if QuestFrameProgressPanel and QuestFrameProgressPanel:IsShown() then
+        pcall(PrefixProgressTitle)
+    end
+    if ObjectiveTrackerManager and ObjectiveTrackerManager.UpdateAll then
+        pcall(function()
+            MarkTrackerModulesDirty()
+            ObjectiveTrackerManager:UpdateAll()
+        end)
+    end
+end)
