@@ -87,11 +87,10 @@ local function PrefixQuestInfoTitle()
     end
 
     local questID
-    if QuestInfoFrame and QuestInfoFrame.questLog then
-        local selection = GetQuestLogSelection and GetQuestLogSelection()
-        if selection and GetQuestLogTitle then
-            questID = select(8, GetQuestLogTitle(selection))
-        end
+    if QuestMapFrame and QuestMapFrame.DetailsFrame and QuestMapFrame.DetailsFrame.questID then
+        questID = QuestMapFrame.DetailsFrame.questID
+    elseif QuestInfoFrame and QuestInfoFrame.questLog and C_QuestLog and C_QuestLog.GetSelectedQuest then
+        questID = C_QuestLog.GetSelectedQuest()
     elseif GetQuestID then
         questID = GetQuestID()
     end
