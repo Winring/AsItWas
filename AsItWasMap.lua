@@ -13,6 +13,7 @@ local PIN_TEMPLATES = {
     "QuestHubPinTemplate",
     "BonusObjectivePinTemplate",
 }
+local pinBadges = setmetatable({}, { __mode = "k" })
 
 local function IsMapAttached(frame)
     if not frame then
@@ -32,14 +33,14 @@ local function IsMapAttached(frame)
 end
 
 local function EnsureBadge(pin)
-    local badge = pin.AsItWasBadge
+    local badge = pinBadges[pin]
     if badge then
         return badge
     end
     badge = pin:CreateTexture(nil, "OVERLAY", nil, 7)
     badge:SetSize(BADGE_SIZE, BADGE_SIZE)
     badge:SetPoint("TOPRIGHT", pin, "TOPRIGHT", 3, 3)
-    pin.AsItWasBadge = badge
+    pinBadges[pin] = badge
     return badge
 end
 
@@ -115,7 +116,7 @@ local function CanvasIsReady(map)
     if not map or not map:IsShown() then
         return false
     end
-    if not map.RefreshAllDataProviders or not map.dataProviders then
+    if not map.dataProviders then
         return false
     end
     local scroll = map.ScrollContainer
@@ -129,7 +130,7 @@ local function RefreshCanvas(map)
     if not CanvasIsReady(map) then
         return
     end
-    securecallfunction(map.RefreshAllDataProviders, map)
+    -- Blizzard owns provider refreshes; only update pins that already exist.
     if not map.EnumeratePinsByTemplate then
         return
     end
