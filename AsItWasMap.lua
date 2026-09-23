@@ -322,9 +322,6 @@ local function GroupBadgeKind(ids)
 end
 
 function AIW.RefreshMinimapOverlays()
-    if true then
-        return -- Disabled for now till we will not figure out the all exclamation marks (quest) coverage
-    end
     minimapUsed = 0
     if not Minimap or not AIW.IsEnabled() then
     HideUnusedMinimapBadges()
