@@ -322,6 +322,11 @@ local function GroupBadgeKind(ids)
 end
 
 function AIW.RefreshMinimapOverlays()
+    if not AIW.IsMinimapBadgesEnabled() then
+        minimapUsed = 0
+        HideUnusedMinimapBadges()
+        return
+    end
     minimapUsed = 0
     if not Minimap or not AIW.IsEnabled() then
     HideUnusedMinimapBadges()
@@ -369,6 +374,10 @@ function AIW.RefreshMinimapOverlays()
 -- was never collected from one whose offset landed outside the minimap. Runs on
 -- demand only, never from the OnUpdate pass.
 function AIW.DumpMinimap()
+    if not AIW.IsMinimapBadgesEnabled() then
+        AIW.Print("dump: minimap badges are disabled")
+        return
+    end
     local mapID = C_Minimap.GetUiMapID and C_Minimap.GetUiMapID() or C_Map.GetBestMapForUnit("player")
     if not Minimap or not mapID then
         AIW.Print("dump: no minimap or map id")
@@ -448,13 +457,16 @@ loader:SetScript("OnEvent", function(_, event, name)
 end)
 
 local minimapFrame = CreateFrame("Frame")
-minimapFrame:RegisterEvent("MINIMAP_UPDATE_ZOOM")
-minimapFrame:RegisterEvent("QUEST_POI_UPDATE")
-minimapFrame:RegisterEvent("QUESTLINE_UPDATE")
-minimapFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-minimapFrame:RegisterEvent("CVAR_UPDATE")
 minimapFrame.elapsed = 0
-minimapFrame:SetScript("OnEvent", function(_, event, cvar)
+local minimapEvents = {
+    "MINIMAP_UPDATE_ZOOM",
+    "QUEST_POI_UPDATE",
+    "QUESTLINE_UPDATE",
+    "PLAYER_ENTERING_WORLD",
+    "CVAR_UPDATE",
+}
+
+local function OnMinimapEvent(_, event, cvar)
     if event == "CVAR_UPDATE" and cvar ~= "rotateMinimap" then
         return
     end
@@ -462,8 +474,9 @@ minimapFrame:SetScript("OnEvent", function(_, event, cvar)
         InvalidateMinimapQuestCache()
     end
     AIW.RefreshMinimapOverlays()
-end)
-minimapFrame:SetScript("OnUpdate", function(self, elapsed)
+end
+
+local function OnMinimapUpdate(self, elapsed)
     self.elapsed = self.elapsed + elapsed
     -- Zoom animates GetViewRadius; keep this tight so in/out does not lag.
     if self.elapsed < 0.05 then
@@ -471,6 +484,25 @@ minimapFrame:SetScript("OnUpdate", function(self, elapsed)
     end
     self.elapsed = 0
     AIW.RefreshMinimapOverlays()
-end)
+end
+
+function AIW.SetMinimapBadgesRuntimeEnabled(enabled)
+    if enabled then
+        for _, event in ipairs(minimapEvents) do
+            minimapFrame:RegisterEvent(event)
+        end
+        minimapFrame:SetScript("OnEvent", OnMinimapEvent)
+        minimapFrame:SetScript("OnUpdate", OnMinimapUpdate)
+    else
+        for _, event in ipairs(minimapEvents) do
+            minimapFrame:UnregisterEvent(event)
+        end
+        minimapFrame:SetScript("OnEvent", nil)
+        minimapFrame:SetScript("OnUpdate", nil)
+        minimapFrame.elapsed = 0
+    end
+end
+
+AIW.SetMinimapBadgesRuntimeEnabled(AIW.IsMinimapBadgesEnabled())
 
 AIW.OnFilterChanged(AIW.RefreshMapOverlays)

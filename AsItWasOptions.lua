@@ -3,6 +3,7 @@ local ADDON_NAME, AIW = ...
 local settingsCategory
 local optionsDropdown
 local optionsOlder
+local optionsMinimap
 local firstRunFrame
 
 local function FillFilterMenu(rootDescription, getId, setId, includeOff)
@@ -50,6 +51,25 @@ local function MakeOlderCheckbox(parent, getter, setter)
     return box
 end
 
+local function MakeMinimapCheckbox(parent, getter, setter)
+    local box = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    box.Text:SetText("Show minimap quest badges")
+    box:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Show minimap quest badges", 1, 1, 1)
+        GameTooltip:AddLine("Disable this if minimap quest markers are incomplete or cause problems.", nil, nil, nil, true)
+        GameTooltip:Show()
+    end)
+    box:SetScript("OnLeave", GameTooltip_Hide)
+    box:SetScript("OnClick", function(self)
+        setter(self:GetChecked())
+    end)
+    box.Refresh = function(self)
+        self:SetChecked(getter())
+    end
+    return box
+end
+
 local function BuildOptionsFrame()
     local frame = CreateFrame("Frame")
     local intro = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
@@ -75,9 +95,20 @@ local function BuildOptionsFrame()
     optionsOlder:SetPoint("TOPLEFT", optionsDropdown, "BOTTOMLEFT", -6, -12)
     optionsOlder:Refresh()
 
+    optionsMinimap = MakeMinimapCheckbox(frame, function()
+        return AIW.IsMinimapBadgesEnabled()
+    end, function(checked)
+        AIW.SetMinimapBadgesEnabled(checked)
+    end)
+    optionsMinimap:SetPoint("TOPLEFT", optionsOlder, "BOTTOMLEFT", 0, -8)
+    optionsMinimap:Refresh()
+
     AIW.OnFilterChanged(function()
         if optionsOlder then
             optionsOlder:Refresh()
+        end
+        if optionsMinimap then
+            optionsMinimap:Refresh()
         end
     end)
 
@@ -88,6 +119,9 @@ local function BuildOptionsFrame()
         end
         if optionsOlder then
             optionsOlder:Refresh()
+        end
+        if optionsMinimap then
+            optionsMinimap:Refresh()
         end
     end
 

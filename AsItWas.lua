@@ -74,6 +74,7 @@ local defaults = {
     filterId = "off",
     seenSetup = false,
     includeOlder = true,
+    showMinimapBadges = true,
     doNotAbandonOlder = true,
 }
 
@@ -93,6 +94,9 @@ function AIW.EnsureDB()
     end
     if AsItWasDB.includeOlder == nil then
         AsItWasDB.includeOlder = defaults.includeOlder
+    end
+    if AsItWasDB.showMinimapBadges == nil then
+        AsItWasDB.showMinimapBadges = defaults.showMinimapBadges
     end
     if AsItWasDB.doNotAbandonOlder == nil then
         AsItWasDB.doNotAbandonOlder = defaults.doNotAbandonOlder
@@ -383,6 +387,20 @@ end
 function AIW.SetIncludeOlder(value)
     AIW.EnsureDB()
     AsItWasDB.includeOlder = value and true or false
+    AIW.NotifyChanged()
+end
+
+function AIW.IsMinimapBadgesEnabled()
+    AIW.EnsureDB()
+    return AsItWasDB.showMinimapBadges ~= false
+end
+
+function AIW.SetMinimapBadgesEnabled(value)
+    AIW.EnsureDB()
+    AsItWasDB.showMinimapBadges = value and true or false
+    if AIW.SetMinimapBadgesRuntimeEnabled then
+        AIW.SetMinimapBadgesRuntimeEnabled(AsItWasDB.showMinimapBadges)
+    end
     AIW.NotifyChanged()
 end
 
