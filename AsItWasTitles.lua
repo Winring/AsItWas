@@ -5,6 +5,7 @@ local _, AIW = ...
 
 local hooked = {
     dialogue = false,
+    dialogueOptions = false,
     gossip = false,
     greeting = false,
     progress = false,
@@ -33,10 +34,32 @@ local function DecorateDialogueQuestButtons(dialogue)
     end)
 end
 
+local function HookDialogueOptionButtons()
+    if hooked.dialogueOptions then
+        return
+    end
+
+    local mixin = _G.DUIDialogOptionButtonMixin
+    if not mixin or not rawget(mixin, "SetQuest") then
+        return
+    end
+
+    hooked.dialogueOptions = true
+    hooksecurefunc(mixin, "SetQuest", function(button)
+        local questID = button and button.questID
+        local title = button and button.Name
+        if questID and title then
+            button:SetButtonText(AIW.MarkTitle(questID, title:GetText()), true)
+        end
+    end)
+end
+
 local function WrapDialogue()
     if hooked.dialogue then
         return
     end
+
+    HookDialogueOptionButtons()
 
     local dialogue = DUIQuestFrame
     if not dialogue or not dialogue.UpdateQuestTitle or not dialogue.FrontFrame then
