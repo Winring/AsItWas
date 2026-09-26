@@ -15,6 +15,19 @@ local PIN_TEMPLATES = {
 }
 local pinBadges = setmetatable({}, { __mode = "k" })
 
+local function SecureTooltipWidgetSet()
+    if AIW._secureTooltipWidgetSetApplied or not GameTooltip_AddWidgetSet or not securecallfunction then
+        return
+    end
+    local original = GameTooltip_AddWidgetSet
+    GameTooltip_AddWidgetSet = function(self, widgetSetID, verticalPadding)
+        return securecallfunction(original, self, widgetSetID, verticalPadding)
+    end
+    AIW._secureTooltipWidgetSetApplied = true
+end
+
+SecureTooltipWidgetSet()
+
 local function IsMapAttached(frame)
     if not frame then
         return false
@@ -421,7 +434,14 @@ end
 local function HookMixin(mixin, method)
     if mixin and mixin[method] then
         hooksecurefunc(mixin, method, function(self)
-            AIW.ApplyPinOverlay(self)
+            -- Let Blizzard finish its pin setup before touching the pin's regions.
+            if not C_Timer or not C_Timer.After then
+                AIW.ApplyPinOverlay(self)
+                return
+            end
+            C_Timer.After(0, function()
+                AIW.ApplyPinOverlay(self)
+            end)
         end)
     end
 end
@@ -450,6 +470,9 @@ local loader = CreateFrame("Frame")
 loader:RegisterEvent("ADDON_LOADED")
 loader:RegisterEvent("PLAYER_LOGIN")
 loader:SetScript("OnEvent", function(_, event, name)
+    if event == "PLAYER_LOGIN" or name == "Blizzard_GameTooltip" or name == "Blizzard_UIWidgets" then
+        SecureTooltipWidgetSet()
+    end
     if event == "PLAYER_LOGIN" or name == "Blizzard_POIButton"
         or name == "Blizzard_WorldMap" or name == "Blizzard_SharedMapDataProviders" then
         HookPinMixins()

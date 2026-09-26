@@ -429,13 +429,36 @@ function AIW.RefreshTitles()
 end
 
 local mapTooltipHooks = {}
+local queuedMapTooltipQuestID
+local mapTooltipRetitleQueued = false
+
+local function QueueMapTooltipRetitle(questID)
+    if not C_Timer or not C_Timer.After then
+        AIW.RetitleMapTooltip(questID)
+        return
+    end
+    queuedMapTooltipQuestID = questID
+    if mapTooltipRetitleQueued then
+        return
+    end
+    mapTooltipRetitleQueued = true
+    C_Timer.After(0, function()
+        mapTooltipRetitleQueued = false
+        local pendingQuestID = queuedMapTooltipQuestID
+        queuedMapTooltipQuestID = nil
+        if pendingQuestID then
+            AIW.RetitleMapTooltip(pendingQuestID)
+        end
+    end)
+end
+
 local function HookMapTooltips()
     if not mapTooltipHooks.pin and QuestPinMixin and QuestPinMixin.OnMouseEnter then
         mapTooltipHooks.pin = true
         hooksecurefunc(QuestPinMixin, "OnMouseEnter", function(self)
             local questID = self.GetQuestID and self:GetQuestID() or self.questID
             if questID then
-                AIW.RetitleMapTooltip(questID)
+                QueueMapTooltipRetitle(questID)
             end
         end)
     end
@@ -443,7 +466,7 @@ local function HookMapTooltips()
         mapTooltipHooks.task = true
         hooksecurefunc("TaskPOI_OnEnter", function(self)
             if self and self.questID then
-                AIW.RetitleMapTooltip(self.questID)
+                QueueMapTooltipRetitle(self.questID)
             end
         end)
     end
@@ -451,7 +474,7 @@ local function HookMapTooltips()
         mapTooltipHooks.calling = true
         hooksecurefunc("CallingPOI_OnEnter", function(self)
             if self and self.questID then
-                AIW.RetitleMapTooltip(self.questID)
+                QueueMapTooltipRetitle(self.questID)
             end
         end)
     end
