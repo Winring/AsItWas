@@ -1,40 +1,214 @@
-Message: GetAuraDataByIndex(): Auras cannot be accessed when secret while tainted by 'AsItWas'
-Lua Taint: AsItWas
-Time: Sun Sep 20 09:24:25 2026
-Count: 1
-Stack:
-[Interface/AddOns/Blizzard_MawBuffs/Blizzard_MawBuffs.lua]:4: in function 'ShouldShowMawBuffs'
-[Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ScenarioObjectiveTracker.lua]:187: in function 'LayoutContents'
-[Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ObjectiveTrackerModule.lua]:147: in function 'Update'
-[Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ObjectiveTrackerContainer.lua]:64: in function <...ectiveTracker/Blizzard_ObjectiveTrackerContainer.lua:49>
-[C]: in function 'Update'
-[Interface/AddOns/Blizzard_ObjectiveTracker/Blizzard_ObjectiveTracker.lua]:50: in function <...zzard_ObjectiveTracker/Blizzard_ObjectiveTracker.lua:42>
-[tail call]: ?
-[Interface/AddOns/Blizzard_SharedXML/MixinUtil.lua]:341: in function <Interface/AddOns/Blizzard_SharedXML/MixinUtil.lua:340>
+1x [ADDON_ACTION_BLOCKED] AddOn 'AsItWas' tried to call the protected function 'Button:SetPassThroughButtons()'.
+[!BugGrabber/BugGrabber.lua]:554: in function '?'
+[!BugGrabber/BugGrabber.lua]:538: in function <!BugGrabber/BugGrabber.lua:538>
+[C]: in function 'SetPassThroughButtons'
+[Blizzard_MapCanvas/MapCanvas_DataProviderBase.lua]:290: in function 'CheckMouseButtonPassthrough'
+[Blizzard_MapCanvas/Blizzard_MapCanvas.lua]:302: in function 'AcquirePin'
+[Blizzard_SharedMapDataProviders/EncounterJournalDataProvider.lua]:36: in function 'RefreshAllData'
+[Blizzard_MapCanvas/MapCanvas_DataProviderBase.lua]:76: in function 'OnMapChanged'
+[Blizzard_MapCanvas/Blizzard_MapCanvas.lua]:760: in function <...aceBlizzard_MapCanvas/Blizzard_MapCanvas.lua:759>
+[C]: in function 'secureexecuterange'
+[Blizzard_MapCanvas/Blizzard_MapCanvas.lua]:765: in function <...aceBlizzard_MapCanvas/Blizzard_MapCanvas.lua:763>
+[C]: in function 'OnMapChanged'
+[Blizzard_WorldMap/Blizzard_WorldMap.lua]:333: in function <...rfaceBlizzard_WorldMap/Blizzard_WorldMap.lua:332>
+...[C]: in function 'Show'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:456: in function 'SetUIPanel'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:299: in function 'ShowUIPanel'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:128: in function <...UIParentPanelManager/Shared/UIParentPanelManager.lua:123>
+[C]: in function 'SetAttribute'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:847: in function 'ShowUIPanel'
+[Blizzard_WorldMap/QuestLogOwnerMixin.lua]:115: in function 'SetDisplayState'
+[Blizzard_WorldMap/QuestLogOwnerMixin.lua]:51: in function 'HandleUserActionToggleSelf'
+[Blizzard_WorldMap/Blizzard_WorldMap.lua]:581: in function 'ToggleWorldMap'
+[TOGGLEWORLDMAP]:1: in function <[string "TOGGLEWORLDMAP"]:1>
+
 
 Locals:
+self=<table>
+event="ADDON_ACTION_BLOCKED"
+addonName="AsItWas"
+addonFunc="Button:SetPassThroughButtons()"
+name="AsItWas"
+badAddons=<table>{
+ AsItWas=true
+}
+L=<table>{
+ NO_DISPLAY_2="|cffffff00The standard display is called BugSack, and can probably be found on the same site where you found !BugGrabber.|r"
+ ERROR_DETECTED="%s |cffffff00captured, click the link for more information.|r"
+ BUGGRABBER_STOPPED="|cffffff00There are too many errors in your UI. As a result, your game experience may be degraded. Disable or update the failing addons if you don't want to see this message again.|r"
+ USAGE="|cffffff00Usage: /buggrabber <1-%d>.|r"
+ STOP_NAG="|cffffff00!BugGrabber will not nag about missing a display addon again until next patch.|r"
+ NO_DISPLAY_STOP="|cffffff00If you don't want to be reminded about this again, run /stopnag.|r"
+ NO_DISPLAY_1="|cffffff00You seem to be running !BugGrabber with no display addon to go along with it. Although a slash command is provided for accessing error reports, a display can help you manage these errors in a more convenient way.|r"
+ ERROR_UNABLE="|cffffff00!BugGrabber is unable to retrieve errors from other players by itself. Please install BugSack or a similar display addon that might give you this functionality.|r"
+ ADDON_CALL_PROTECTED="[%s] AddOn '%s' tried to call the protected function '%s'."
+}
 
 
 
 
 
-
-
-
-Message: ...UIWidgets/Blizzard_UIWidgetTemplateTextWithState.lua:35: attempt to perform arithmetic on local 'textHeight' (a secret number value, while execution tainted by 'AsItWas')
-Time: Sun Sep 20 09:44:21 2026
-Count: 1
-Stack:
-[Interface/AddOns/Blizzard_UIWidgets/Blizzard_UIWidgetTemplateTextWithState.lua]:35: in function 'Setup'
-[Interface/AddOns/Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:526: in function 'ProcessWidget'
-[Interface/AddOns/Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:562: in function 'ProcessAllWidgets'
-[Interface/AddOns/Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:275: in function 'RegisterForWidgetSet'
-[Interface/AddOns/Blizzard_GameTooltip/Mainline/GameTooltip.lua]:602: in function 'GameTooltip_AddWidgetSet'
-[Interface/AddOns/Blizzard_FrameXMLUtil/AreaPoiUtil.lua]:44: in function <...terface/AddOns/Blizzard_FrameXMLUtil/AreaPoiUtil.lua:3>
+1x ...Blizzard_UIWidgets/Blizzard_UIWidgetTemplateBase.lua:1030: attempt to perform arithmetic on local 'barWidth' (a secret number value, while execution tainted by 'AsItWas')
+[Blizzard_UIWidgets/Blizzard_UIWidgetTemplateBase.lua]:1030: in function 'InitPartitions'
+[Blizzard_UIWidgets/Blizzard_UIWidgetTemplateBase.lua]:847: in function 'Setup'
+[Blizzard_UIWidgets/Blizzard_UIWidgetTemplateStatusBar.lua]:109: in function 'Setup'
+[Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:526: in function 'ProcessWidget'
+[Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:562: in function 'ProcessAllWidgets'
+[Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:275: in function 'RegisterForWidgetSet'
+[Blizzard_GameTooltip/Mainline/GameTooltip.lua]:602: in function 'GameTooltip_AddWidgetSet'
+[Blizzard_FrameXMLUtil/AreaPoiUtil.lua]:44: in function <Blizzard_FrameXMLUtil/AreaPoiUtil.lua:3>
 [tail call]: ?
-[Interface/AddOns/Blizzard_SharedMapDataProviders/AreaPOIDataProvider.lua]:166: in function <...zzard_SharedMapDataProviders/AreaPOIDataProvider.lua:159>
+[Blizzard_SharedMapDataProviders/AreaPOIDataProvider.lua]:166: in function <...zzard_SharedMapDataProviders/AreaPOIDataProvider.lua:159>
+[C]: ?
+[C]: in function 'OnMouseEnter'
+[Blizzard_SharedMapDataProviders/AreaPOIEventDataProvider.lua]:76: in function <..._SharedMapDataProviders/AreaPOIEventDataProvider.lua:74>
 [C]: ?
 [C]: ?
+
+
+Locals:
+self=StatusBar <Blizzard_UIWidgetTemplateStatusBar.xml:5>{
+ Label=FontString <Blizzard_UIWidgetTemplateStatusBar.xml:69>
+ BGLeft=Texture <Blizzard_UIWidgetTemplateStatusBar.xml:19>
+ tooltipYOffset=0
+ value=155500
+ disableTooltip=true
+ GlowLeft=Texture <Blizzard_UIWidgetTemplateStatusBar.xml:76>
+ Spark=Texture <Blizzard_UIWidgetTemplateStatusBar.xml:54>
+ SparkMask=MaskTexture <Blizzard_UIWidgetTemplateStatusBar.xml:60>
+ partitionPool=<table>
+ partitionValues=<table>
+ BorderLeft=Texture <Blizzard_UIWidgetTemplateStatusBar.xml:37>
+ BorderCenter=Texture <Blizzard_UIWidgetTemplateStatusBar.xml:47>
+ barMin=0
+ lastFillAtlas="widgetstatusbar-fill-white"
+ frameTextureKit="widgetstatusbar"
+ textureKit="white"
+ range=1000000
+ tooltipLoc=0
+ barMax=1000000
+ GlowCenter=Texture <Blizzard_UIWidgetTemplateStatusBar.xml:86>
+ GlowPulseAnim=AnimationGroup <Blizzard_UIWidgetTemplateStatusBar.xml:95>
+ GlowRight=Texture <Blizzard_UIWidgetTemplateStatusBar.xml:81>
+ BackgroundGlow=Texture <Blizzard_UIWidgetTemplateStatusBar.xml:12>
+ tooltipAnchor="ANCHOR_BOTTOMLEFT"
+ BGRight=Texture <Blizzard_UIWidgetTemplateStatusBar.xml:24>
+ defaultTooltipAnchor="ANCHOR_BOTTOMLEFT"
+ BGCenter=Texture <Blizzard_UIWidgetTemplateStatusBar.xml:29>
+ tooltipXOffset=0
+ BorderRight=Texture <Blizzard_UIWidgetTemplateStatusBar.xml:42>
+}
+partitionValues=<table>{
+ 1=250
+}
+textureKit="widgetstatusbar"
+paritionAtlasName="widgetstatusbar-BorderTick"
+partitionAtlasInfo=<table>{
+ rightTexCoord=0.359375
+ rawSize=<table>
+ elementName="widgetstatusbar-bordertick"
+ topTexCoord=0.671875
+ width=17
+ leftTexCoord=0.292969
+ tilesVertically=false
+ height=31
+ file=4352554
+ bottomTexCoord=0.792969
+ tilesHorizontally=false
+}
+barWidth=<secret number>
+(for state)=<table>{
+ 1=250
+}
+(for control)=1
+_=1
+partitionValue=250
+partitionFrame=Frame <Blizzard_UIWidgetTemplateBase.lua:1026>{
+ fullAtlasName="widgetstatusbar-BorderTick-Full"
+ textureKit="widgetstatusbar"
+ hasFullAtlas=false
+ emptyAtlasName="widgetstatusbar-BorderTick"
+ FlashOverlay=Texture <Blizzard_UIWidgetTemplateBase.xml:208>
+ FlashAnim=AnimationGroup <Blizzard_UIWidgetTemplateBase.xml:216>
+ value=250
+ Tex=Texture <Blizzard_UIWidgetTemplateBase.xml:201>
+}
+partitionPercent=0.000250
+(*temporary)=0.000250
+(*temporary)=0
+(*temporary)=1
+(*temporary)=0
+(*temporary)=1
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)="attempt to perform arithmetic on local 'barWidth' (a secret number value, while execution tainted by 'AsItWas')"
+partitionTextureKitString="%s-BorderTick"
+
+
+
+
+1x [ADDON_ACTION_BLOCKED] AddOn 'AsItWas' tried to call the protected function 'Frame:SetPassThroughButtons()'.
+[!BugGrabber/BugGrabber.lua]:554: in function '?'
+[!BugGrabber/BugGrabber.lua]:538: in function <!BugGrabber/BugGrabber.lua:538>
+[C]: in function 'SetPassThroughButtons'
+[Blizzard_MapCanvas/MapCanvas_DataProviderBase.lua]:290: in function 'CheckMouseButtonPassthrough'
+[Blizzard_MapCanvas/Blizzard_MapCanvas.lua]:302: in function 'AcquirePin'
+[Blizzard_SharedMapDataProviders/WaypointLocationDataProvider.lua]:59: in function 'RefreshAllData'
+[Blizzard_MapCanvas/Blizzard_MapCanvas.lua]:636: in function <...aceBlizzard_MapCanvas/Blizzard_MapCanvas.lua:635>
+[C]: in function 'secureexecuterange'
+[Blizzard_MapCanvas/Blizzard_MapCanvas.lua]:640: in function <...aceBlizzard_MapCanvas/Blizzard_MapCanvas.lua:639>
+[C]: in function 'RefreshAllDataProviders'
+[Blizzard_MapCanvas/Blizzard_MapCanvas.lua]:668: in function 'RefreshAll'
+[Blizzard_MapCanvas/Blizzard_MapCanvas.lua]:95: in function 'OnShow'
+...[C]: in function 'Show'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:456: in function 'SetUIPanel'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:299: in function 'ShowUIPanel'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:128: in function <...UIParentPanelManager/Shared/UIParentPanelManager.lua:123>
+[C]: in function 'SetAttribute'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:847: in function 'ShowUIPanel'
+[Blizzard_WorldMap/QuestLogOwnerMixin.lua]:115: in function 'SetDisplayState'
+[Blizzard_WorldMap/QuestLogOwnerMixin.lua]:51: in function 'HandleUserActionToggleSelf'
+[Blizzard_WorldMap/Blizzard_WorldMap.lua]:581: in function 'ToggleWorldMap'
+[TOGGLEWORLDMAP]:1: in function <[string "TOGGLEWORLDMAP"]:1>
+
+
+Locals:
+self=<table>
+event="ADDON_ACTION_BLOCKED"
+addonName="AsItWas"
+addonFunc="Frame:SetPassThroughButtons()"
+name="AsItWas"
+badAddons=<table>{
+ AsItWas=true
+}
+L=<table>{
+ NO_DISPLAY_2="|cffffff00The standard display is called BugSack, and can probably be found on the same site where you found !BugGrabber.|r"
+ ERROR_DETECTED="%s |cffffff00captured, click the link for more information.|r"
+ BUGGRABBER_STOPPED="|cffffff00There are too many errors in your UI. As a result, your game experience may be degraded. Disable or update the failing addons if you don't want to see this message again.|r"
+ USAGE="|cffffff00Usage: /buggrabber <1-%d>.|r"
+ STOP_NAG="|cffffff00!BugGrabber will not nag about missing a display addon again until next patch.|r"
+ NO_DISPLAY_STOP="|cffffff00If you don't want to be reminded about this again, run /stopnag.|r"
+ NO_DISPLAY_1="|cffffff00You seem to be running !BugGrabber with no display addon to go along with it. Although a slash command is provided for accessing error reports, a display can help you manage these errors in a more convenient way.|r"
+ ERROR_UNABLE="|cffffff00!BugGrabber is unable to retrieve errors from other players by itself. Please install BugSack or a similar display addon that might give you this functionality.|r"
+ ADDON_CALL_PROTECTED="[%s] AddOn '%s' tried to call the protected function '%s'."
+}
+
+
+
+
+11x ...UIWidgets/Blizzard_UIWidgetTemplateTextWithState.lua:35: attempt to perform arithmetic on local 'textHeight' (a secret number value, while execution tainted by 'AsItWas')
+[Blizzard_UIWidgets/Blizzard_UIWidgetTemplateTextWithState.lua]:35: in function 'Setup'
+[Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:526: in function 'ProcessWidget'
+[Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:562: in function 'ProcessAllWidgets'
+[Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:275: in function 'RegisterForWidgetSet'
+[Blizzard_GameTooltip/Mainline/GameTooltip.lua]:602: in function 'GameTooltip_AddWidgetSet'
+[Blizzard_FrameXMLUtil/AreaPoiUtil.lua]:44: in function <Blizzard_FrameXMLUtil/AreaPoiUtil.lua:3>
+[tail call]: ?
+[Blizzard_SharedMapDataProviders/AreaPOIDataProvider.lua]:166: in function <...zzard_SharedMapDataProviders/AreaPOIDataProvider.lua:159>
+[C]: ?
+[C]: ?
+
 
 Locals:
 self=Frame <Blizzard_UIWidgetManager.lua:432>{
@@ -73,7 +247,7 @@ widgetInfo=<table>{
  bottomPadding=0
  enabledState=1
  textSizeType=0
- text="Story Variant: Totem Annihilation"
+ text="Story Variant: |cnWHITE_FONT_COLOR:Totem Annihilation"
  orderIndex=0
  layoutDirection=0
  inAnimType=0
@@ -112,3 +286,182 @@ textHeight=<secret number>
 (*temporary)=1
 (*temporary)=0
 (*temporary)="attempt to perform arithmetic on local 'textHeight' (a secret number value, while execution tainted by 'AsItWas')"
+
+
+
+
+
+1x Blizzard_SharedXML/SharedTooltipTemplates.lua:213: attempt to compare local 'frameWidth' (a secret number value, while execution tainted by 'AsItWas')
+[Blizzard_SharedXML/SharedTooltipTemplates.lua]:213: in function 'GameTooltip_InsertFrame'
+[Blizzard_SharedMapDataProviders/QuestOfferDataProvider.lua]:635: in function 'AddSuppressedPinsToTooltip'
+[Blizzard_SharedMapDataProviders/QuestOfferDataProvider.lua]:602: in function 'AddCustomTooltipData'
+[Blizzard_SharedMapDataProviders/AreaPOIDataProvider.lua]:189: in function 'customFn'
+[Blizzard_FrameXMLUtil/AreaPoiUtil.lua]:58: in function <Blizzard_FrameXMLUtil/AreaPoiUtil.lua:3>
+[tail call]: ?
+[C]: in function 'TryShowTooltip'
+[Blizzard_SharedMapDataProviders/AreaPOIDataProvider.lua]:166: in function <...zzard_SharedMapDataProviders/AreaPOIDataProvider.lua:159>
+[C]: ?
+[C]: in function 'OnMouseEnter'
+[Blizzard_SharedMapDataProviders/QuestOfferDataProvider.lua]:885: in function <...rd_SharedMapDataProviders/QuestOfferDataProvider.lua:884>
+
+
+Locals:
+tooltipFrame=GameTooltip <GameTooltip.xml:249>{
+ ItemTooltip=Frame <GameTooltip.xml:254>
+ BottomOverlay=Texture <SharedTooltipTemplates.xml:28>
+ NineSlice=Frame <SharedTooltipTemplates.xml:19>
+ suppressAutomaticCompareItem=false
+ textLeft1Font="GameTooltipHeaderText"
+ textRight2Font="GameTooltipText"
+ TopOverlay=Texture <SharedTooltipTemplates.xml:23>
+ TextLeft1=GameTooltipTextLeft1 <SharedTooltipTemplates.xml:35>
+ supportsDataRefresh=true
+ insertedFrames=<table>
+ shouldRefreshData=false
+ waitingForData=false
+ shoppingTooltips=<table>
+ updateTooltipTimer=0.065000
+ StatusBar=GameTooltipStatusBar <GameTooltip.xml:9>
+ supportsItemComparison=true
+ TextRight1=GameTooltipTextRight1 <SharedTooltipTemplates.xml:36>
+ textLeft2Font="GameTooltipText"
+ layoutType="TooltipDefaultLayout"
+ textRight1Font="GameTooltipHeaderText"
+ TextRight2=GameTooltipTextRight2 <SharedTooltipTemplates.xml:42>
+ TextLeft2=GameTooltipTextLeft2 <SharedTooltipTemplates.xml:41>
+}
+frame=Frame <QuestOfferDataProvider.lua:675>{
+ dirty=false
+ lines=<table>
+ AdditionalItems=FontString <QuestOfferDataProvider.xml:45>
+}
+verticalPadding=0
+textSpacing=2
+textHeight=12
+neededHeight=20
+numLinesNeeded=2
+currentLine=4
+frameWidth=<secret number>
+(*temporary)=0
+(*temporary)=GameTooltip <GameTooltip.xml:249>{
+ ItemTooltip=Frame <GameTooltip.xml:254>
+ BottomOverlay=Texture <SharedTooltipTemplates.xml:28>
+ NineSlice=Frame <SharedTooltipTemplates.xml:19>
+ suppressAutomaticCompareItem=false
+ textLeft1Font="GameTooltipHeaderText"
+ textRight2Font="GameTooltipText"
+ TopOverlay=Texture <SharedTooltipTemplates.xml:23>
+ TextLeft1=GameTooltipTextLeft1 <SharedTooltipTemplates.xml:35>
+ supportsDataRefresh=true
+ insertedFrames=<table>
+ shouldRefreshData=false
+ waitingForData=false
+ shoppingTooltips=<table>
+ updateTooltipTimer=0.065000
+ StatusBar=GameTooltipStatusBar <GameTooltip.xml:9>
+ supportsItemComparison=true
+ TextRight1=GameTooltipTextRight1 <SharedTooltipTemplates.xml:36>
+ textLeft2Font="GameTooltipText"
+ layoutType="TooltipDefaultLayout"
+ textRight1Font="GameTooltipHeaderText"
+ TextRight2=GameTooltipTextRight2 <SharedTooltipTemplates.xml:42>
+ TextLeft2=GameTooltipTextLeft2 <SharedTooltipTemplates.xml:41>
+}
+(*temporary)=0
+(*temporary)=false
+(*temporary)=0
+(*temporary)=0
+(*temporary)="attempt to compare local 'frameWidth' (a secret number value, while execution tainted by 'AsItWas')"
+
+
+
+
+2x [ADDON_ACTION_BLOCKED] AddOn 'AsItWas' tried to call the protected function 'Frame:SetPropagateMouseClicks()'.
+[!BugGrabber/BugGrabber.lua]:554: in function '?'
+[!BugGrabber/BugGrabber.lua]:538: in function <!BugGrabber/BugGrabber.lua:538>
+[C]: in function 'SetPropagateMouseClicks'
+[Blizzard_SharedMapDataProviders/SharedMapPoiTemplates.lua]:521: in function 'UpdateMousePropagation'
+[Blizzard_SharedMapDataProviders/SharedMapPoiTemplates.lua]:526: in function 'OnAcquired'
+[Blizzard_SharedMapDataProviders/VignetteDataProvider.lua]:253: in function 'OnAcquired'
+[Blizzard_MapCanvas/Blizzard_MapCanvas.lua]:297: in function <...aceBlizzard_MapCanvas/Blizzard_MapCanvas.lua:251>
+[tail call]: ?
+[Blizzard_SharedMapDataProviders/VignetteDataProvider.lua]:125: in function 'RefreshAllData'
+[Blizzard_MapCanvas/Blizzard_MapCanvas.lua]:636: in function <...aceBlizzard_MapCanvas/Blizzard_MapCanvas.lua:635>
+[C]: in function 'secureexecuterange'
+[Blizzard_MapCanvas/Blizzard_MapCanvas.lua]:640: in function <...aceBlizzard_MapCanvas/Blizzard_MapCanvas.lua:639>
+...[C]: in function 'Show'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:456: in function 'SetUIPanel'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:299: in function 'ShowUIPanel'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:128: in function <...UIParentPanelManager/Shared/UIParentPanelManager.lua:123>
+[C]: in function 'SetAttribute'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:847: in function 'ShowUIPanel'
+[Blizzard_WorldMap/QuestLogOwnerMixin.lua]:115: in function 'SetDisplayState'
+[Blizzard_WorldMap/QuestLogOwnerMixin.lua]:51: in function 'HandleUserActionToggleSelf'
+[Blizzard_WorldMap/Blizzard_WorldMap.lua]:581: in function 'ToggleWorldMap'
+[TOGGLEWORLDMAP]:1: in function <[string "TOGGLEWORLDMAP"]:1>
+
+
+Locals:
+self=<table>
+event="ADDON_ACTION_BLOCKED"
+addonName="AsItWas"
+addonFunc="Frame:SetPropagateMouseClicks()"
+name="AsItWas"
+badAddons=<table>{
+ AsItWas=true
+}
+L=<table>{
+ NO_DISPLAY_2="|cffffff00The standard display is called BugSack, and can probably be found on the same site where you found !BugGrabber.|r"
+ ERROR_DETECTED="%s |cffffff00captured, click the link for more information.|r"
+ BUGGRABBER_STOPPED="|cffffff00There are too many errors in your UI. As a result, your game experience may be degraded. Disable or update the failing addons if you don't want to see this message again.|r"
+ USAGE="|cffffff00Usage: /buggrabber <1-%d>.|r"
+ STOP_NAG="|cffffff00!BugGrabber will not nag about missing a display addon again until next patch.|r"
+ NO_DISPLAY_STOP="|cffffff00If you don't want to be reminded about this again, run /stopnag.|r"
+ NO_DISPLAY_1="|cffffff00You seem to be running !BugGrabber with no display addon to go along with it. Although a slash command is provided for accessing error reports, a display can help you manage these errors in a more convenient way.|r"
+ ERROR_UNABLE="|cffffff00!BugGrabber is unable to retrieve errors from other players by itself. Please install BugSack or a similar display addon that might give you this functionality.|r"
+ ADDON_CALL_PROTECTED="[%s] AddOn '%s' tried to call the protected function '%s'."
+}
+
+
+
+
+
+3x [ADDON_ACTION_BLOCKED] AddOn 'AsItWas' tried to call the protected function 'PerformEmote()'.
+[!BugGrabber/BugGrabber.lua]:554: in function '?'
+[!BugGrabber/BugGrabber.lua]:538: in function <!BugGrabber/BugGrabber.lua:538>
+[C]: in function 'PerformEmote'
+[Blizzard_WorldMap/Blizzard_WorldMap.lua]:359: in function <...rfaceBlizzard_WorldMap/Blizzard_WorldMap.lua:342>
+[C]: ?
+[C]: ?
+[C]: in function 'Show'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:456: in function 'SetUIPanel'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:299: in function 'ShowUIPanel'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:128: in function <...UIParentPanelManager/Shared/UIParentPanelManager.lua:123>
+[C]: in function 'SetAttribute'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:847: in function 'ShowUIPanel'
+[Blizzard_WorldMap/QuestLogOwnerMixin.lua]:115: in function 'SetDisplayState'
+[Blizzard_WorldMap/QuestLogOwnerMixin.lua]:51: in function 'HandleUserActionToggleSelf'
+[Blizzard_WorldMap/Blizzard_WorldMap.lua]:581: in function 'ToggleWorldMap'
+[TOGGLEWORLDMAP]:1: in function <[string "TOGGLEWORLDMAP"]:1>
+
+
+Locals:
+self=<table>
+event="ADDON_ACTION_BLOCKED"
+addonName="AsItWas"
+addonFunc="PerformEmote()"
+name="AsItWas"
+badAddons=<table>{
+ AsItWas=true
+}
+L=<table>{
+ NO_DISPLAY_2="|cffffff00The standard display is called BugSack, and can probably be found on the same site where you found !BugGrabber.|r"
+ ERROR_DETECTED="%s |cffffff00captured, click the link for more information.|r"
+ BUGGRABBER_STOPPED="|cffffff00There are too many errors in your UI. As a result, your game experience may be degraded. Disable or update the failing addons if you don't want to see this message again.|r"
+ USAGE="|cffffff00Usage: /buggrabber <1-%d>.|r"
+ STOP_NAG="|cffffff00!BugGrabber will not nag about missing a display addon again until next patch.|r"
+ NO_DISPLAY_STOP="|cffffff00If you don't want to be reminded about this again, run /stopnag.|r"
+ NO_DISPLAY_1="|cffffff00You seem to be running !BugGrabber with no display addon to go along with it. Although a slash command is provided for accessing error reports, a display can help you manage these errors in a more convenient way.|r"
+ ERROR_UNABLE="|cffffff00!BugGrabber is unable to retrieve errors from other players by itself. Please install BugSack or a similar display addon that might give you this functionality.|r"
+ ADDON_CALL_PROTECTED="[%s] AddOn '%s' tried to call the protected function '%s'."
+}
