@@ -8,7 +8,6 @@ local hooked = {
     dialogueOptions = false,
     gossip = false,
     greeting = false,
-    progress = false,
     tracker = false,
 }
 
@@ -238,21 +237,6 @@ local function WrapGreeting()
     hooksecurefunc("QuestFrameGreetingPanel_OnShow", PrefixGreetingButtons)
 end
 
-local function PrefixProgressTitle()
-    if not QuestProgressTitleText or not GetQuestID or not GetTitleText then
-        return
-    end
-    QuestProgressTitleText:SetText(AIW.MarkTitle(GetQuestID(), GetTitleText()))
-end
-
-local function WrapProgress()
-    if hooked.progress or not QuestFrameProgressPanel_OnShow then
-        return
-    end
-    hooked.progress = true
-    hooksecurefunc("QuestFrameProgressPanel_OnShow", PrefixProgressTitle)
-end
-
 local function TrackerQuestID(block)
     if not block or type(block.id) ~= "number" then
         return nil
@@ -281,32 +265,6 @@ local TRACKER_FRAMES = {
 local wrappedTrackerFrames = {}
 local pendingTrackerBlocks = setmetatable({}, { __mode = "k" })
 local trackerPassScheduled = false
-local objectiveTrackerAuraGuardApplied = false
-
--- WORKAROUND - REMOVE after Blizzard fixes the secret-aura handling in the
--- objective tracker. ShouldShowMawBuffs is used by shared scenario layout code,
--- not only Maw content. During Midnight restricted event/scenario updates,
--- Blizzard can expose a secret aura value here and fail while laying out the
--- tracker. Returning false skips only the MawBuffs UI block; quest/event
--- progress and the rest of the tracker continue updating. This is not a real
--- fix: restore the original function once Blizzard safely handles the value.
-local function ApplyObjectiveTrackerAuraGuard()
-    if objectiveTrackerAuraGuardApplied or type(ShouldShowMawBuffs) ~= "function" then
-        return
-    end
-    if not C_Secrets or not C_Secrets.ShouldAurasBeSecret then
-        return
-    end
-
-    objectiveTrackerAuraGuardApplied = true
-    local original = ShouldShowMawBuffs
-    ShouldShowMawBuffs = function()
-        if C_Secrets.ShouldAurasBeSecret() then
-            return false
-        end
-        return original()
-    end
-end
 
 local function DecorateTrackerBlock(module, questID, title)
     if not questID or not module or not module.GetExistingBlock then
@@ -403,58 +361,6 @@ local function WrapTracker()
     end)
 end
 
--- ObjectiveTrackerManager:UpdateAll is a dirty update: a module that is not
--- marked dirty keeps its cached layout and never runs UpdateSingle again
--- (ObjectiveTrackerModule.lua:134). Without this the titles only appear after
--- something else dirties the tracker.
-local function MarkTrackerModulesDirty()
-    for _, name in ipairs(TRACKER_FRAMES) do
-        local frame = _G[name]
-        if frame and frame.MarkDirty then
-            securecallfunction(frame.MarkDirty, frame)
-        end
-    end
-end
-
-function AIW.RefreshTitles()
-    WrapDialogue()
-    WrapQuestLog()
-    WrapQuestInfo()
-    WrapQuestLogPopup()
-    WrapGossip()
-    WrapGreeting()
-    WrapTracker()
-
-    -- Do not call QuestLogQuests_Update here. On WoW Midnight 12.x, forcing
-    -- that Blizzard-wide Quest Log refresh taints later map-pin acquisition
-    -- and produces ADDON_ACTION_BLOCKED for Frame:SetPropagateMouseClicks().
-    -- The normal Quest Log hook above remains enabled and is safe.
-    if ObjectiveTrackerManager and ObjectiveTrackerManager.UpdateAll then
-        MarkTrackerModulesDirty()
-        securecallfunction(ObjectiveTrackerManager.UpdateAll, ObjectiveTrackerManager)
-    end
-    if GossipFrame and GossipFrame.Update and GossipFrame:IsShown() then
-        pcall(function()
-            GossipFrame:Update()
-        end)
-    end
-    if DUIQuestFrame and DUIQuestFrame:IsShown() then
-        pcall(function()
-            DecorateDialogueTitle(DUIQuestFrame)
-            DecorateDialogueQuestButtons(DUIQuestFrame)
-        end)
-    end
-    if QuestFrameGreetingPanel and QuestFrameGreetingPanel:IsShown() then
-        PrefixGreetingButtons()
-    end
-    if QuestInfoTitleHeader and QuestInfoTitleHeader:IsVisible() then
-        pcall(PrefixQuestInfoTitle)
-    end
-    if QuestLogPopupDetailFrame and QuestLogPopupDetailFrame:IsShown() then
-        pcall(PrefixQuestLogPopupTitle)
-    end
-end
-
 local mapTooltipHooks = {}
 local pendingMapTooltipQuestID
 local mapTooltipRetitleScheduled = false
@@ -490,7 +396,6 @@ local function QueueMapTooltipRetitle(questID)
     end
 end
 
--- Diagnostic: restore only map-hover retitling while isolating combat map taint.
 local function HookMapTooltips()
     if not mapTooltipHooks.pin and QuestPinMixin and QuestPinMixin.OnMouseEnter then
         mapTooltipHooks.pin = true
@@ -519,7 +424,6 @@ local function HookMapTooltips()
     end
 end
 
--- Diagnostic: restore only quest-log title hooks while isolating map taint.
 WrapQuestLog()
 WrapQuestInfo()
 WrapQuestLogPopup()
