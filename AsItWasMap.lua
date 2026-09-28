@@ -14,6 +14,21 @@ local PIN_TEMPLATES = {
     "BonusObjectivePinTemplate",
 }
 local pinBadges = setmetatable({}, { __mode = "k" })
+local pendingPins = setmetatable({}, { __mode = "k" })
+local pinPassScheduled = false
+
+local function IsQuestPin(pin)
+    if not pin then
+        return false
+    end
+    local template = pin.pinTemplate
+    for _, questTemplate in ipairs(PIN_TEMPLATES) do
+        if template == questTemplate then
+            return true
+        end
+    end
+    return false
+end
 
 local function IsMapAttached(frame)
     if not frame then
@@ -96,19 +111,51 @@ local function BadgeKindForQuestIDs(ids)
 end
 
 function AIW.ApplyPinOverlay(pin)
-    if not pin or not pin.CreateTexture then
+    if not IsQuestPin(pin) or not pin.CreateTexture then
         return
     end
     if not IsMapAttached(pin) then
         return
     end
-    local badge = EnsureBadge(pin)
     local kind = BadgeKindForQuestIDs(RelatedQuestIDs(pin))
-    if kind then
-        badge:SetTexture(BADGE_TEXTURE[kind])
-        badge:Show()
+    local badge = pinBadges[pin]
+    if not kind then
+        if badge then
+            badge:Hide()
+        end
+        return
+    end
+    badge = badge or EnsureBadge(pin)
+    badge:SetTexture(BADGE_TEXTURE[kind])
+    badge:Show()
+end
+
+-- Blizzard's map pin acquisition runs inside a protected mouse-focus update.
+-- Do not create or modify addon regions from an OnAcquired hook: even though
+-- the hook itself is post-call, it still runs in the acquire call path and can
+-- taint the next protected propagation check. Queue the work for the next UI
+-- turn instead. Existing pins are harmless to process in the same pass.
+local function FlushPendingPinOverlays()
+    pinPassScheduled = false
+    for pin in pairs(pendingPins) do
+        pendingPins[pin] = nil
+        AIW.ApplyPinOverlay(pin)
+    end
+end
+
+local function QueuePinOverlay(pin)
+    if not pin then
+        return
+    end
+    pendingPins[pin] = true
+    if pinPassScheduled then
+        return
+    end
+    pinPassScheduled = true
+    if C_Timer and C_Timer.After then
+        C_Timer.After(0, FlushPendingPinOverlays)
     else
-        badge:Hide()
+        FlushPendingPinOverlays()
     end
 end
 
@@ -421,7 +468,7 @@ end
 local function HookMixin(mixin, method)
     if mixin and mixin[method] then
         hooksecurefunc(mixin, method, function(self)
-            AIW.ApplyPinOverlay(self)
+            QueuePinOverlay(self)
         end)
     end
 end
@@ -437,7 +484,6 @@ local function HookPinMixins()
     hooked = true
     HookMixin(POIButtonMixin, "UpdateButtonStyle")
     HookMixin(POIButtonMixin, "SetQuestID")
-    HookMixin(QuestPinMixin, "OnMouseEnter")
     HookMixin(QuestOfferPinMixin, "OnAcquired")
     HookMixin(WorldQuestPinMixin, "RefreshVisuals")
     HookMixin(WorldQuestPinMixin, "OnLoad")

@@ -279,6 +279,8 @@ local TRACKER_FRAMES = {
 }
 
 local wrappedTrackerFrames = {}
+local pendingTrackerBlocks = setmetatable({}, { __mode = "k" })
+local trackerPassScheduled = false
 local objectiveTrackerAuraGuardApplied = false
 
 -- WORKAROUND - REMOVE after Blizzard fixes the secret-aura handling in the
@@ -330,6 +332,34 @@ local function DecorateTrackerBlock(module, questID, title)
     end
 end
 
+-- Do not mutate Blizzard-owned tracker blocks from inside UpdateSingle or
+-- SetHeader. Midnight can still be laying out restricted event data at that
+-- point, so a synchronous SetText/SetHeight would join Blizzard's taint path.
+-- Queue the same decoration for the next UI turn instead.
+local function FlushPendingTrackerDecorations()
+    trackerPassScheduled = false
+    for block, title in pairs(pendingTrackerBlocks) do
+        pendingTrackerBlocks[block] = nil
+        DecorateTrackerBlock(block.parentModule, TrackerQuestID(block), title)
+    end
+end
+
+local function QueueTrackerDecoration(block, title)
+    if not block then
+        return
+    end
+    pendingTrackerBlocks[block] = title
+    if trackerPassScheduled then
+        return
+    end
+    trackerPassScheduled = true
+    if C_Timer and C_Timer.After then
+        C_Timer.After(0, FlushPendingTrackerDecorations)
+    else
+        FlushPendingTrackerDecorations()
+    end
+end
+
 -- XML mixin= copies methods onto the frame. hooksecurefunc on
 -- ObjectiveTrackerBlockMixin.SetHeader does not run on those copies.
 -- Hook the live module frames instead (QuestObjectiveTracker.lua:280).
@@ -345,13 +375,14 @@ local function WrapTracker()
                         return
                     end
                     local questID = quest.GetID and quest:GetID()
-                    DecorateTrackerBlock(self, questID, quest.title)
+                    local block = questID and self.GetExistingBlock and self:GetExistingBlock(questID)
+                    QueueTrackerDecoration(block, quest.title)
                 end)
             end
             if frame.SetUpQuestBlock then
                 hooksecurefunc(frame, "SetUpQuestBlock", function(self, block)
                     if block and type(block.id) == "number" then
-                        DecorateTrackerBlock(self, block.id, block.taskName)
+                        QueueTrackerDecoration(block, block.taskName)
                     end
                 end)
             end
@@ -368,11 +399,7 @@ local function WrapTracker()
         end
         local marked = AIW.MarkTitle(questID, text)
         if marked ~= text then
-            if self.SetStringText then
-                self:SetStringText(self.HeaderText, marked, nil, OBJECTIVE_TRACKER_COLOR and OBJECTIVE_TRACKER_COLOR["Header"], self.isHighlighted)
-            else
-                self.HeaderText:SetText(marked)
-            end
+            QueueTrackerDecoration(self, marked)
         end
     end)
 end
@@ -433,13 +460,41 @@ function AIW.RefreshTitles()
 end
 
 local mapTooltipHooks = {}
+local pendingMapTooltipQuestID
+local mapTooltipRetitleScheduled = false
+
+local function FlushMapTooltipRetitle()
+    mapTooltipRetitleScheduled = false
+    local questID = pendingMapTooltipQuestID
+    pendingMapTooltipQuestID = nil
+    if questID then
+        AIW.RetitleMapTooltip(questID)
+    end
+end
+
+local function QueueMapTooltipRetitle(questID)
+    if not questID then
+        return
+    end
+    pendingMapTooltipQuestID = questID
+    if mapTooltipRetitleScheduled then
+        return
+    end
+    mapTooltipRetitleScheduled = true
+    if C_Timer and C_Timer.After then
+        C_Timer.After(0, FlushMapTooltipRetitle)
+    else
+        FlushMapTooltipRetitle()
+    end
+end
+
 local function HookMapTooltips()
     if not mapTooltipHooks.pin and QuestPinMixin and QuestPinMixin.OnMouseEnter then
         mapTooltipHooks.pin = true
         hooksecurefunc(QuestPinMixin, "OnMouseEnter", function(self)
             local questID = self.GetQuestID and self:GetQuestID() or self.questID
             if questID then
-                AIW.RetitleMapTooltip(questID)
+                QueueMapTooltipRetitle(questID)
             end
         end)
     end
@@ -447,7 +502,7 @@ local function HookMapTooltips()
         mapTooltipHooks.task = true
         hooksecurefunc("TaskPOI_OnEnter", function(self)
             if self and self.questID then
-                AIW.RetitleMapTooltip(self.questID)
+                QueueMapTooltipRetitle(self.questID)
             end
         end)
     end
@@ -455,7 +510,7 @@ local function HookMapTooltips()
         mapTooltipHooks.calling = true
         hooksecurefunc("CallingPOI_OnEnter", function(self)
             if self and self.questID then
-                AIW.RetitleMapTooltip(self.questID)
+                QueueMapTooltipRetitle(self.questID)
             end
         end)
     end
