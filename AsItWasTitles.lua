@@ -364,7 +364,6 @@ end
 -- ObjectiveTrackerBlockMixin.SetHeader does not run on those copies.
 -- Hook the live module frames instead (QuestObjectiveTracker.lua:280).
 local function WrapTracker()
-    ApplyObjectiveTrackerAuraGuard()
     for _, name in ipairs(TRACKER_FRAMES) do
         local frame = _G[name]
         if frame and not wrappedTrackerFrames[name] then
@@ -500,6 +499,6 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_UIPanels_Game", function()
     WrapQuestInfo()
     WrapQuestLogPopup()
 end)
-EventUtil.ContinueOnAddOnLoaded("Blizzard_ObjectiveTracker", ApplyObjectiveTrackerAuraGuard)
+EventUtil.ContinueOnAddOnLoaded("Blizzard_ObjectiveTracker", WrapTracker)
 
 -- Diagnostic: skip automatic title/tracker refresh while isolating map taint.
