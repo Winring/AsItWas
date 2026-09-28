@@ -491,22 +491,6 @@ end
 local function HookMapTooltips()
 end
 
-WrapDialogue()
-WrapQuestLog()
-WrapQuestInfo()
-WrapQuestLogPopup()
-HookMapTooltips()
-EventUtil.ContinueOnAddOnLoaded("Blizzard_UIPanels_Game", function()
-    WrapQuestLog()
-    WrapQuestInfo()
-    WrapQuestLogPopup()
-    WrapGossip()
-    WrapGreeting()
-    WrapProgress()
-    HookMapTooltips()
-end)
-EventUtil.ContinueOnAddOnLoaded("Blizzard_SharedMapDataProviders", HookMapTooltips)
-EventUtil.ContinueOnAddOnLoaded("Blizzard_ObjectiveTracker", WrapTracker)
-EventUtil.ContinueOnAddOnLoaded("DialogueUI", WrapDialogue)
+-- Diagnostic: title hooks are not installed while isolating map taint.
 
 -- Diagnostic: skip automatic title/tracker refresh while isolating map taint.
