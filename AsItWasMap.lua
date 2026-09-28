@@ -430,14 +430,36 @@ end
 
 function AIW.RefreshMapOverlays()
     InvalidateMinimapQuestCache()
+    if securecallfunction then
+        securecallfunction(RefreshCanvas, WorldMapFrame)
+    else
+        RefreshCanvas(WorldMapFrame)
+    end
     AIW.RefreshMinimapOverlays()
 end
 
 -- Map providers acquire pins from inside Blizzard's protected refresh range.
 -- Do not hook pin acquisition or visual-update methods: even a deferred hook
 -- callback still runs in that range and can taint the following pin's protected
--- mouse-propagation update. The map pin overlay is disabled temporarily below
--- while the remaining combat taint source is isolated.
+-- mouse-propagation update. Poll existing pins after the map is shown instead.
+local mapOverlayFrame = CreateFrame("Frame")
+mapOverlayFrame.elapsed = 0
+mapOverlayFrame:SetScript("OnUpdate", function(self, elapsed)
+    if not WorldMapFrame or not WorldMapFrame:IsShown() then
+        self.elapsed = 0
+        return
+    end
+    self.elapsed = self.elapsed + elapsed
+    if self.elapsed < 0.1 then
+        return
+    end
+    self.elapsed = 0
+    if securecallfunction then
+        securecallfunction(RefreshCanvas, WorldMapFrame)
+    else
+        RefreshCanvas(WorldMapFrame)
+    end
+end)
 -- Diagnostic: map pin overlays are disabled while isolating the combat taint.
 -- Minimap badges and all title functionality remain enabled.
 
