@@ -370,16 +370,7 @@ function AIW.RetitleMapTooltip(questID)
     local marked = AIW.MarkTitle(questID, text, "map")
     if marked ~= text then
         line:SetText(marked)
-        -- The tooltip is already visible and Blizzard has already laid it out.
-        -- Re-showing an ANCHOR_CURSOR_RIGHT tooltip re-applies its anchor and
-        -- can visibly move it every time the map refreshes the title. Keep the
-        -- existing anchor and expand only the width needed by our title.
-        if line.GetStringWidth and GameTooltip.GetWidth and GameTooltip.SetWidth then
-            local requiredWidth = line:GetStringWidth() + 40
-            if requiredWidth > GameTooltip:GetWidth() then
-                GameTooltip:SetWidth(requiredWidth)
-            end
-        end
+        GameTooltip:Show()
     end
 end
 
