@@ -533,5 +533,3 @@ HookMapTooltips()
 EventUtil.ContinueOnAddOnLoaded("Blizzard_SharedMapDataProviders", HookMapTooltips)
 WrapDialogue()
 EventUtil.ContinueOnAddOnLoaded("DialogueUI", WrapDialogue)
-
-AIW.OnFilterChanged(AIW.RefreshTitles)
