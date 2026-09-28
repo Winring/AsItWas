@@ -397,28 +397,32 @@ local function QueueMapTooltipRetitle(questID)
 end
 
 local function HookMapTooltips()
+    if not mapTooltipHooks.text and GameTooltip and GameTooltip.SetText then
+        mapTooltipHooks.text = true
+        hooksecurefunc(GameTooltip, "SetText", function(tooltip, title)
+            if tooltip ~= GameTooltip or not title or title == RETRIEVING_DATA then
+                return
+            end
+            local owner = tooltip.GetOwner and tooltip:GetOwner()
+            local questID = owner and (owner.GetQuestID and owner:GetQuestID() or owner.questID)
+            if not questID then
+                return
+            end
+            local marked = AIW.MarkTitle(questID, title, "map")
+            if marked ~= title then
+                local line = _G[tooltip:GetName() .. "TextLeft1"]
+                if line then
+                    line:SetText(marked)
+                end
+            end
+        end)
+    end
     if not mapTooltipHooks.pin and QuestPinMixin and QuestPinMixin.OnMouseEnter then
         mapTooltipHooks.pin = true
         hooksecurefunc(QuestPinMixin, "OnMouseEnter", function(self)
             local questID = self.GetQuestID and self:GetQuestID() or self.questID
             if questID then
                 QueueMapTooltipRetitle(questID)
-            end
-        end)
-    end
-    if not mapTooltipHooks.task and TaskPOI_OnEnter then
-        mapTooltipHooks.task = true
-        hooksecurefunc("TaskPOI_OnEnter", function(self)
-            if self and self.questID then
-                QueueMapTooltipRetitle(self.questID)
-            end
-        end)
-    end
-    if not mapTooltipHooks.calling and CallingPOI_OnEnter then
-        mapTooltipHooks.calling = true
-        hooksecurefunc("CallingPOI_OnEnter", function(self)
-            if self and self.questID then
-                QueueMapTooltipRetitle(self.questID)
             end
         end)
     end
