@@ -489,6 +489,9 @@ local function QueueMapTooltipRetitle(questID)
 end
 
 local function HookMapTooltips()
+    -- Diagnostic: map hover hooks are disabled while isolating combat map taint.
+    return
+
     if not mapTooltipHooks.pin and QuestPinMixin and QuestPinMixin.OnMouseEnter then
         mapTooltipHooks.pin = true
         hooksecurefunc(QuestPinMixin, "OnMouseEnter", function(self)
