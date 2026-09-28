@@ -500,6 +500,6 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_UIPanels_Game", function()
     WrapQuestInfo()
     WrapQuestLogPopup()
 end)
-EventUtil.ContinueOnAddOnLoaded("Blizzard_ObjectiveTracker", WrapTracker)
+EventUtil.ContinueOnAddOnLoaded("Blizzard_ObjectiveTracker", ApplyObjectiveTrackerAuraGuard)
 
 -- Diagnostic: skip automatic title/tracker refresh while isolating map taint.
