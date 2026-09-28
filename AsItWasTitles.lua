@@ -461,12 +461,22 @@ end
 local mapTooltipHooks = {}
 local pendingMapTooltipQuestID
 local mapTooltipRetitleScheduled = false
+local suppressedMapTooltipOwner
+local suppressedMapTooltipQuestID
+local mapTooltipHideHooked = false
+
+local function ClearMapTooltipSuppression()
+    suppressedMapTooltipOwner = nil
+    suppressedMapTooltipQuestID = nil
+end
 
 local function FlushMapTooltipRetitle()
     mapTooltipRetitleScheduled = false
     local questID = pendingMapTooltipQuestID
     pendingMapTooltipQuestID = nil
     if questID then
+        suppressedMapTooltipOwner = GameTooltip and GameTooltip.GetOwner and GameTooltip:GetOwner()
+        suppressedMapTooltipQuestID = questID
         AIW.RetitleMapTooltip(questID)
     end
 end
@@ -474,6 +484,16 @@ end
 local function QueueMapTooltipRetitle(questID)
     if not questID then
         return
+    end
+    local owner = GameTooltip and GameTooltip.GetOwner and GameTooltip:GetOwner()
+    if suppressedMapTooltipOwner and owner == suppressedMapTooltipOwner then
+        return
+    end
+    if not owner and suppressedMapTooltipQuestID == questID then
+        return
+    end
+    if suppressedMapTooltipOwner and owner ~= suppressedMapTooltipOwner then
+        ClearMapTooltipSuppression()
     end
     pendingMapTooltipQuestID = questID
     if mapTooltipRetitleScheduled then
@@ -489,6 +509,10 @@ end
 
 -- Diagnostic: restore only map-hover retitling while isolating combat map taint.
 local function HookMapTooltips()
+    if not mapTooltipHideHooked and GameTooltip and GameTooltip.HookScript then
+        mapTooltipHideHooked = true
+        GameTooltip:HookScript("OnHide", ClearMapTooltipSuppression)
+    end
     if not mapTooltipHooks.pin and QuestPinMixin and QuestPinMixin.OnMouseEnter then
         mapTooltipHooks.pin = true
         hooksecurefunc(QuestPinMixin, "OnMouseEnter", function(self)
