@@ -10,6 +10,6 @@ data/QuestPatches.lua
 data/PatchList.lua
 AsItWas.lua
 AsItWasMap.lua
-AsItWasTitles.lua
+## Diagnostic: temporarily disabled while bisecting map taint.
 AsItWasLog.lua
 AsItWasOptions.lua
