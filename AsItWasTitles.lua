@@ -426,35 +426,11 @@ function AIW.RefreshTitles()
     WrapProgress()
     WrapTracker()
 
-    if QuestLogQuests_Update then
-        pcall(QuestLogQuests_Update)
-    end
+    -- Diagnostic: test only the Objective Tracker refresh. The remaining
+    -- visible-title refreshes are restored after this path is isolated.
     if ObjectiveTrackerManager and ObjectiveTrackerManager.UpdateAll then
         MarkTrackerModulesDirty()
         securecallfunction(ObjectiveTrackerManager.UpdateAll, ObjectiveTrackerManager)
-    end
-    if GossipFrame and GossipFrame.Update and GossipFrame:IsShown() then
-        pcall(function()
-            GossipFrame:Update()
-        end)
-    end
-    if DUIQuestFrame and DUIQuestFrame:IsShown() then
-        pcall(function()
-            DecorateDialogueTitle(DUIQuestFrame)
-            DecorateDialogueQuestButtons(DUIQuestFrame)
-        end)
-    end
-    if QuestFrameGreetingPanel and QuestFrameGreetingPanel:IsShown() then
-        PrefixGreetingButtons()
-    end
-    if QuestFrameProgressPanel and QuestFrameProgressPanel:IsShown() then
-        PrefixProgressTitle()
-    end
-    if QuestInfoTitleHeader and QuestInfoTitleHeader:IsVisible() then
-        pcall(PrefixQuestInfoTitle)
-    end
-    if QuestLogPopupDetailFrame and QuestLogPopupDetailFrame:IsShown() then
-        pcall(PrefixQuestLogPopupTitle)
     end
 end
 
