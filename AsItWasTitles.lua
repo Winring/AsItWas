@@ -423,7 +423,6 @@ function AIW.RefreshTitles()
     WrapQuestLogPopup()
     WrapGossip()
     WrapGreeting()
-    WrapProgress()
 
     -- Do not call QuestLogQuests_Update here. On WoW Midnight 12.x, forcing
     -- that Blizzard-wide Quest Log refresh taints later map-pin acquisition
@@ -446,9 +445,6 @@ function AIW.RefreshTitles()
     end
     if QuestFrameGreetingPanel and QuestFrameGreetingPanel:IsShown() then
         PrefixGreetingButtons()
-    end
-    if QuestFrameProgressPanel and QuestFrameProgressPanel:IsShown() then
-        PrefixProgressTitle()
     end
     if QuestInfoTitleHeader and QuestInfoTitleHeader:IsVisible() then
         pcall(PrefixQuestInfoTitle)
@@ -532,7 +528,6 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_UIPanels_Game", function()
     WrapQuestLogPopup()
     WrapGossip()
     WrapGreeting()
-    WrapProgress()
 end)
 HookMapTooltips()
 EventUtil.ContinueOnAddOnLoaded("Blizzard_SharedMapDataProviders", HookMapTooltips)
