@@ -491,6 +491,14 @@ end
 local function HookMapTooltips()
 end
 
--- Diagnostic: title hooks are not installed while isolating map taint.
+-- Diagnostic: restore only quest-log title hooks while isolating map taint.
+WrapQuestLog()
+WrapQuestInfo()
+WrapQuestLogPopup()
+EventUtil.ContinueOnAddOnLoaded("Blizzard_UIPanels_Game", function()
+    WrapQuestLog()
+    WrapQuestInfo()
+    WrapQuestLogPopup()
+end)
 
 -- Diagnostic: skip automatic title/tracker refresh while isolating map taint.
