@@ -460,8 +460,6 @@ mapOverlayFrame:SetScript("OnUpdate", function(self, elapsed)
         RefreshCanvas(WorldMapFrame)
     end
 end)
--- Diagnostic: map pin overlays are disabled while isolating the combat taint.
--- Minimap badges and all title functionality remain enabled.
 
 local minimapFrame = CreateFrame("Frame")
 minimapFrame.elapsed = 0
