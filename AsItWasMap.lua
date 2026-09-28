@@ -430,7 +430,11 @@ end
 
 function AIW.RefreshMapOverlays()
     InvalidateMinimapQuestCache()
-    RefreshCanvas(WorldMapFrame)
+    if securecallfunction then
+        securecallfunction(RefreshCanvas, WorldMapFrame)
+    else
+        RefreshCanvas(WorldMapFrame)
+    end
     AIW.RefreshMinimapOverlays()
 end
 
@@ -451,7 +455,11 @@ mapOverlayFrame:SetScript("OnUpdate", function(self, elapsed)
         return
     end
     self.elapsed = 0
-    RefreshCanvas(WorldMapFrame)
+    if securecallfunction then
+        securecallfunction(RefreshCanvas, WorldMapFrame)
+    else
+        RefreshCanvas(WorldMapFrame)
+    end
 end)
 
 local minimapFrame = CreateFrame("Frame")
