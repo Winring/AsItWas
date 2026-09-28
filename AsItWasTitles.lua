@@ -509,4 +509,4 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_SharedMapDataProviders", HookMapToolti
 EventUtil.ContinueOnAddOnLoaded("Blizzard_ObjectiveTracker", WrapTracker)
 EventUtil.ContinueOnAddOnLoaded("DialogueUI", WrapDialogue)
 
-AIW.OnFilterChanged(AIW.RefreshTitles)
+-- Diagnostic: skip automatic title/tracker refresh while isolating map taint.
