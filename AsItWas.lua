@@ -370,6 +370,7 @@ function AIW.RetitleMapTooltip(questID)
     local marked = AIW.MarkTitle(questID, text, "map")
     if marked ~= text then
         line:SetText(marked)
+        GameTooltip:Show()
     end
 end
 
