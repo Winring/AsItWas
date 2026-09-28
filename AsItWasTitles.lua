@@ -459,7 +459,6 @@ function AIW.RefreshTitles()
     end
 end
 
-local mapTooltipHooks = {}
 local pendingMapTooltipQuestID
 local mapTooltipRetitleScheduled = false
 
@@ -488,35 +487,8 @@ local function QueueMapTooltipRetitle(questID)
     end
 end
 
+-- Diagnostic: map hover retitling is disabled while isolating combat map taint.
 local function HookMapTooltips()
-    -- Diagnostic: map hover hooks are disabled while isolating combat map taint.
-    return
-
-    if not mapTooltipHooks.pin and QuestPinMixin and QuestPinMixin.OnMouseEnter then
-        mapTooltipHooks.pin = true
-        hooksecurefunc(QuestPinMixin, "OnMouseEnter", function(self)
-            local questID = self.GetQuestID and self:GetQuestID() or self.questID
-            if questID then
-                QueueMapTooltipRetitle(questID)
-            end
-        end)
-    end
-    if not mapTooltipHooks.task and TaskPOI_OnEnter then
-        mapTooltipHooks.task = true
-        hooksecurefunc("TaskPOI_OnEnter", function(self)
-            if self and self.questID then
-                QueueMapTooltipRetitle(self.questID)
-            end
-        end)
-    end
-    if not mapTooltipHooks.calling and CallingPOI_OnEnter then
-        mapTooltipHooks.calling = true
-        hooksecurefunc("CallingPOI_OnEnter", function(self)
-            if self and self.questID then
-                QueueMapTooltipRetitle(self.questID)
-            end
-        end)
-    end
 end
 
 WrapDialogue()
