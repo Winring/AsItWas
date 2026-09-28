@@ -14,8 +14,6 @@ local PIN_TEMPLATES = {
     "BonusObjectivePinTemplate",
 }
 local pinBadges = setmetatable({}, { __mode = "k" })
-local pendingPins = setmetatable({}, { __mode = "k" })
-local pinPassScheduled = false
 
 local function IsQuestPin(pin)
     if not pin then
@@ -128,35 +126,6 @@ function AIW.ApplyPinOverlay(pin)
     badge = badge or EnsureBadge(pin)
     badge:SetTexture(BADGE_TEXTURE[kind])
     badge:Show()
-end
-
--- Blizzard's map pin acquisition runs inside a protected mouse-focus update.
--- Do not create or modify addon regions from an OnAcquired hook: even though
--- the hook itself is post-call, it still runs in the acquire call path and can
--- taint the next protected propagation check. Queue the work for the next UI
--- turn instead. Existing pins are harmless to process in the same pass.
-local function FlushPendingPinOverlays()
-    pinPassScheduled = false
-    for pin in pairs(pendingPins) do
-        pendingPins[pin] = nil
-        AIW.ApplyPinOverlay(pin)
-    end
-end
-
-local function QueuePinOverlay(pin)
-    if not pin then
-        return
-    end
-    pendingPins[pin] = true
-    if pinPassScheduled then
-        return
-    end
-    pinPassScheduled = true
-    if C_Timer and C_Timer.After then
-        C_Timer.After(0, FlushPendingPinOverlays)
-    else
-        FlushPendingPinOverlays()
-    end
 end
 
 local function CanvasIsReady(map)
@@ -465,41 +434,24 @@ function AIW.RefreshMapOverlays()
     AIW.RefreshMinimapOverlays()
 end
 
-local function HookMixin(mixin, method)
-    if mixin and mixin[method] then
-        hooksecurefunc(mixin, method, function(self)
-            QueuePinOverlay(self)
-        end)
-    end
-end
-
-local hooked = false
-local function HookPinMixins()
-    if hooked then
+-- Map providers acquire pins from inside Blizzard's protected refresh range.
+-- Do not hook pin acquisition or visual-update methods: even a deferred hook
+-- callback still runs in that range and can taint the following pin's protected
+-- mouse-propagation update. Polling runs on our frame after the map is shown,
+-- outside the provider refresh call chain, and only touches existing pins.
+local mapOverlayFrame = CreateFrame("Frame")
+mapOverlayFrame.elapsed = 0
+mapOverlayFrame:SetScript("OnUpdate", function(self, elapsed)
+    if not WorldMapFrame or not WorldMapFrame:IsShown() then
+        self.elapsed = 0
         return
     end
-    if not POIButtonMixin then
+    self.elapsed = self.elapsed + elapsed
+    if self.elapsed < 0.1 then
         return
     end
-    hooked = true
-    HookMixin(POIButtonMixin, "UpdateButtonStyle")
-    HookMixin(POIButtonMixin, "SetQuestID")
-    HookMixin(QuestOfferPinMixin, "OnAcquired")
-    HookMixin(WorldQuestPinMixin, "RefreshVisuals")
-    HookMixin(WorldQuestPinMixin, "OnLoad")
-    HookMixin(QuestHubPinMixin, "OnAcquired")
-    HookMixin(QuestHubPinMixin, "UpdatePriorityQuestDisplay")
-    HookMixin(BonusObjectivePinMixin, "OnAcquired")
-end
-
-local loader = CreateFrame("Frame")
-loader:RegisterEvent("ADDON_LOADED")
-loader:RegisterEvent("PLAYER_LOGIN")
-loader:SetScript("OnEvent", function(_, event, name)
-    if event == "PLAYER_LOGIN" or name == "Blizzard_POIButton"
-        or name == "Blizzard_WorldMap" or name == "Blizzard_SharedMapDataProviders" then
-        HookPinMixins()
-    end
+    self.elapsed = 0
+    RefreshCanvas(WorldMapFrame)
 end)
 
 local minimapFrame = CreateFrame("Frame")
