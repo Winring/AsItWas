@@ -263,8 +263,6 @@ local TRACKER_FRAMES = {
 }
 
 local wrappedTrackerFrames = {}
-local pendingTrackerBlocks = setmetatable({}, { __mode = "k" })
-local trackerPassScheduled = false
 
 local function DecorateTrackerBlock(module, questID, title)
     if not questID or not module or not module.GetExistingBlock then
@@ -290,34 +288,6 @@ local function DecorateTrackerBlock(module, questID, title)
     end
 end
 
--- Do not mutate Blizzard-owned tracker blocks from inside UpdateSingle or
--- SetHeader. Midnight can still be laying out restricted event data at that
--- point, so a synchronous SetText/SetHeight would join Blizzard's taint path.
--- Queue the same decoration for the next UI turn instead.
-local function FlushPendingTrackerDecorations()
-    trackerPassScheduled = false
-    for block, title in pairs(pendingTrackerBlocks) do
-        pendingTrackerBlocks[block] = nil
-        DecorateTrackerBlock(block.parentModule, TrackerQuestID(block), title)
-    end
-end
-
-local function QueueTrackerDecoration(block, title)
-    if not block then
-        return
-    end
-    pendingTrackerBlocks[block] = title
-    if trackerPassScheduled then
-        return
-    end
-    trackerPassScheduled = true
-    if C_Timer and C_Timer.After then
-        C_Timer.After(0, FlushPendingTrackerDecorations)
-    else
-        FlushPendingTrackerDecorations()
-    end
-end
-
 -- XML mixin= copies methods onto the frame. hooksecurefunc on
 -- ObjectiveTrackerBlockMixin.SetHeader does not run on those copies.
 -- Hook the live module frames instead (QuestObjectiveTracker.lua:280).
@@ -332,14 +302,13 @@ local function WrapTracker()
                         return
                     end
                     local questID = quest.GetID and quest:GetID()
-                    local block = questID and self.GetExistingBlock and self:GetExistingBlock(questID)
-                    QueueTrackerDecoration(block, quest.title)
+                    DecorateTrackerBlock(self, questID, quest.title)
                 end)
             end
             if frame.SetUpQuestBlock then
                 hooksecurefunc(frame, "SetUpQuestBlock", function(self, block)
                     if block and type(block.id) == "number" then
-                        QueueTrackerDecoration(block, block.taskName)
+                        DecorateTrackerBlock(self, block.id, block.taskName)
                     end
                 end)
             end
@@ -356,7 +325,7 @@ local function WrapTracker()
         end
         local marked = AIW.MarkTitle(questID, text)
         if marked ~= text then
-            QueueTrackerDecoration(self, marked)
+            DecorateTrackerBlock(self.parentModule, questID, marked)
         end
     end)
 end
