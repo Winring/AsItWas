@@ -540,4 +540,4 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_ObjectiveTracker", WrapTracker)
 WrapDialogue()
 EventUtil.ContinueOnAddOnLoaded("DialogueUI", WrapDialogue)
 
--- Diagnostic: skip automatic title/tracker refresh while isolating map taint.
+AIW.OnFilterChanged(AIW.RefreshTitles)

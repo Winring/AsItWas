@@ -506,8 +506,9 @@ boot:SetScript("OnEvent", function(_, event, name)
         -- auto-dismisses every character and writes seenSetup. Wait a frame.
         C_Timer.After(0, function()
             AIW.EnsureDB()
-            -- Diagnostic: skip the automatic title/tracker refresh while
-            -- isolating the map taint source.
+            if AIW.RefreshTitles then
+                AIW.RefreshTitles()
+            end
             if AIW.RefreshMapOverlays then
                 AIW.RefreshMapOverlays()
             end
