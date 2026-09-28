@@ -426,8 +426,14 @@ function AIW.RefreshTitles()
     WrapProgress()
     WrapTracker()
 
-    -- Diagnostic: QuestLogQuests_Update is isolated as the confirmed taint
-    -- source. Test the remaining visible-title refreshes independently.
+    -- Do not call QuestLogQuests_Update here. On WoW Midnight 12.x, forcing
+    -- that Blizzard-wide Quest Log refresh taints later map-pin acquisition
+    -- and produces ADDON_ACTION_BLOCKED for Frame:SetPropagateMouseClicks().
+    -- The normal Quest Log hook above remains enabled and is safe.
+    if ObjectiveTrackerManager and ObjectiveTrackerManager.UpdateAll then
+        MarkTrackerModulesDirty()
+        securecallfunction(ObjectiveTrackerManager.UpdateAll, ObjectiveTrackerManager)
+    end
     if GossipFrame and GossipFrame.Update and GossipFrame:IsShown() then
         pcall(function()
             GossipFrame:Update()
