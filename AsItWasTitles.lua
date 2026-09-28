@@ -397,6 +397,26 @@ local function QueueMapTooltipRetitle(questID)
 end
 
 local function HookMapTooltips()
+    if not mapTooltipHooks.title and GameTooltip_SetTitle then
+        mapTooltipHooks.title = true
+        hooksecurefunc("GameTooltip_SetTitle", function(tooltip, title)
+            if tooltip ~= GameTooltip or not title or title == RETRIEVING_DATA then
+                return
+            end
+            local owner = tooltip.GetOwner and tooltip:GetOwner()
+            local questID = owner and (owner.GetQuestID and owner:GetQuestID() or owner.questID)
+            if not questID then
+                return
+            end
+            local marked = AIW.MarkTitle(questID, title, "map")
+            if marked ~= title then
+                local line = _G[tooltip:GetName() .. "TextLeft1"]
+                if line then
+                    line:SetText(marked)
+                end
+            end
+        end)
+    end
     if not mapTooltipHooks.text and GameTooltip and GameTooltip.SetText then
         mapTooltipHooks.text = true
         hooksecurefunc(GameTooltip, "SetText", function(tooltip, title)
