@@ -281,9 +281,13 @@ local TRACKER_FRAMES = {
 local wrappedTrackerFrames = {}
 local objectiveTrackerAuraGuardApplied = false
 
--- Blizzard's objective-tracker check reads a restricted aura without a guard.
--- MAW is only the function name in the stack; the restriction also affects
--- unrelated Midnight event/scenario layouts.
+-- WORKAROUND - REMOVE after Blizzard fixes the secret-aura handling in the
+-- objective tracker. ShouldShowMawBuffs is used by shared scenario layout code,
+-- not only Maw content. During Midnight restricted event/scenario updates,
+-- Blizzard can expose a secret aura value here and fail while laying out the
+-- tracker. Returning false skips only the MawBuffs UI block; quest/event
+-- progress and the rest of the tracker continue updating. This is not a real
+-- fix: restore the original function once Blizzard safely handles the value.
 local function ApplyObjectiveTrackerAuraGuard()
     if objectiveTrackerAuraGuardApplied or type(ShouldShowMawBuffs) ~= "function" then
         return
