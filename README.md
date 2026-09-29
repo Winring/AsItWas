@@ -1,31 +1,43 @@
 # As It Was
 
-> Play one expansion or patch as it was.
+> Come back to Azeroth. Pick up where you left off.
 
-Retail World of Warcraft keeps later-season quests on old maps. As It Was marks those quests so you can walk Battle for Azeroth, Shadowlands, or a single patch without the world pulling you into content that did not exist yet.
+World of Warcraft moves on while you are away. When you return, quests from newer patches can fill your map and quest log, making it hard to tell where your own journey stopped.
 
-This is for a playthrough, not for skipping to current. It is not Chromie Time. You can still take every quest.
+**As It Was** lets you choose the expansion or patch where you want to continue. Select the patch you last played—or the one you want to experience—and identify the quests that came later. Focus on the content that belongs to your current chapter, then move the filter forward whenever you are ready.
 
-## Features
+Later content is marked, never blocked. You can still accept any quest, but the markers help you decide what belongs to your current playthrough and what can wait.
 
-* Pick a whole expansion or an exact patch `X.Y.Z`
-* Optionally include older quests so only later patches are marked
-* Map and minimap pins: blue up-arrow on later quests, grey down-arrow on older quests (when Include older is off)
-* Quest titles in the log, tracker, and NPC talk: expansion chip + patch number
-* Out-of-range titles also get a warning icon; world-map pin tooltips use the arrows instead
-* Unknown quest IDs (not in the table yet) get `?` and `[?]`
-* Current filter is shown under the minimap zone name
-* Mass abandon from the quest log settings menu
-* Settings live in the game's own options panel
+## Keep your journey on track
 
-## How it plays
+* Choose a complete expansion or an individual patch `X.Y.Z`
+* Mark later quests on the world map and minimap
+* Optionally mark older quests too
+* See expansion and patch labels in quest titles, the quest log, objective tracker, NPC dialogues, and map tooltips
+* See the active filter under the minimap zone name
+* Abandon later quests from the quest log settings menu, if you choose
+* Change your selected patch at any time
+* Keep the familiar Blizzard UI — no routes to follow and no content is blocked
 
-* Each character is asked once on login; close that window and marking stays off
-* Marking is off until you choose an era
-* In-range quests on the same giver keep their normal icon
-* 3D exclamation marks over NPC heads are left alone — the client owns those
+## How it works
+
+Choose an era during the first setup, such as a complete expansion or a specific patch. Quests from your selected period remain unmarked. Later quests receive a blue marker so you can recognize content that belongs to a later chapter. If **Include older quests** is disabled, older quests receive a grey marker as well.
+
+When you finish your chosen chapter, change the filter to the next patch and continue through Azeroth’s history one step at a time—experiencing it **As It Was**.
+
+The setup is saved separately for each character. Closing the first-run window or choosing **No filter** leaves the addon inactive. The addon never removes quests automatically, and the original 3D exclamation marks above NPCs are left unchanged.
+
+> **Coverage:** Patch data is complete from *Battle for Azeroth* through *Midnight*. *Legion* and earlier content is included as a combined older-content baseline.
 
 ## Commands
 
 * `/asitwas` or `/aiw` — open the settings panel
 * `/asitwas abandon` — abandon quests newer than the selected patch
+
+## Development
+
+Technical specifications, data-generation instructions, and maintenance notes are documented separately:
+
+* [`SPEC.md`](SPEC.md) — product behavior and technical specification
+* [`UPDATE.md`](UPDATE.md) — rebuilding the quest-to-patch data
+* [`HANDOFF.md`](HANDOFF.md) — project state and development notes
