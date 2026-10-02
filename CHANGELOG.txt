@@ -1,9 +1,7 @@
 V0.2.0
-- Quest tooltips keep Blizzard's title, colors, status, and objectives.
-- As It Was arrows, expansion badges, and patch numbers now appear before the quest title.
-- Available quests from map exclamation marks are supported too.
-- Multiple quest steps now display their proper bullets.
-- Map quest tooltips no longer interfere when the As It Was filter is disabled.
+- Replaced the map quest hover tooltip with an As It Was version.
+- Blizzard's quest title, status, colors, and objectives are still shown.
+- As It Was arrows, expansion badges, and patch numbers now appear before the title.
 
 V0.1.0
 - We are alive!
