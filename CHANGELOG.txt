@@ -2,9 +2,7 @@ V0.2.1-alpha
 - Expanded Retail QuestID coverage and older patches.
 
 V0.2.0
-- Replaced the map quest hover tooltip with an As It Was version.
-- Blizzard's quest title, status, colors, and objectives are still shown.
-- As It Was arrows, expansion badges, and patch numbers now appear before the title.
+- Added quest patch labels throughout the interface.
 
 V0.1.0
 - We are alive!
