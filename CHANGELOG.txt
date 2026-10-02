@@ -1,2 +1,15 @@
-V0.1.0-beta
-- First public beta release of As It Was.
+V0.2.0
+- Quest tooltips keep Blizzard's title, colors, status, and objectives.
+- As It Was arrows, expansion badges, and patch numbers now appear before the quest title.
+- Available quests from map exclamation marks are supported too.
+- Multiple quest steps now display their proper bullets.
+- Map quest tooltips no longer interfere when the As It Was filter is disabled.
+
+V0.1.0
+- We are alive!
+- Era filter per character (whole expansion or exact X.Y.Z, plus Include older)
+- Expansion chips and patch numbers on quest titles (log, tracker, NPC)
+- Warning on out-of-range titles; up/down arrows on map and minimap pins
+- Unknown quests marked with ? / [?]
+- Filter caption under the minimap zone name
+- Mass abandon from the quest log gear menu

@@ -1,16 +1,204 @@
-12x ...UIWidgets/Blizzard_UIWidgetTemplateTextWithState.lua:35: attempt to perform arithmetic on local 'textHeight' (a secret number value, while execution tainted by 'AsItWas')
-[Blizzard_UIWidgets/Blizzard_UIWidgetTemplateTextWithState.lua]:35: in function 'Setup'
+1x AsItWas/AsItWasTitles.lua:392: attempt to compare local 'title' (a secret string value, while execution tainted by 'AsItWas')
+[AsItWas/AsItWasTitles.lua]:392: in function <AsItWas/AsItWasTitles.lua:391>
+[C]: in function 'SetText'
+[Blizzard_UIPanels_Game/Mainline/PaperDollFrame.lua]:1793: in function 'PaperDollStatTooltip'
+[*CharacterFrame.xml:125_OnEnter]:4: in function <[string "*CharacterFrame.xml:125_OnEnter"]:1>
+
+
+Locals:
+tooltip=GameTooltip <GameTooltip.xml:249>{
+ ItemTooltip=Frame <GameTooltip.xml:254>
+ BottomOverlay=Texture <SharedTooltipTemplates.xml:28>
+ NineSlice=Frame <SharedTooltipTemplates.xml:19>
+ suppressAutomaticCompareItem=false
+ textLeft1Font="GameTooltipHeaderText"
+ textRight2Font="GameTooltipText"
+ TopOverlay=Texture <SharedTooltipTemplates.xml:23>
+ TextLeft1=GameTooltipTextLeft1 <SharedTooltipTemplates.xml:35>
+ supportsDataRefresh=true
+ waitingForData=false
+ shoppingTooltips=<table>
+ updateTooltipTimer=0.076000
+ StatusBar=GameTooltipStatusBar <GameTooltip.xml:9>
+ TextRight1=GameTooltipTextRight1 <SharedTooltipTemplates.xml:36>
+ supportsItemComparison=true
+ textLeft2Font="GameTooltipText"
+ layoutType="TooltipDefaultLayout"
+ textRight1Font="GameTooltipHeaderText"
+ TextRight2=GameTooltipTextRight2 <SharedTooltipTemplates.xml:42>
+ TextLeft2=GameTooltipTextLeft2 <SharedTooltipTemplates.xml:41>
+}
+title=<secret string>
+(*temporary)="Retrieving data"
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)="attempt to compare local 'title' (a secret string value, while execution tainted by 'AsItWas')"
+AIW=<table>
+
+
+
+
+1x [ADDON_ACTION_BLOCKED] AddOn 'AsItWas' tried to call the protected function 'Button:SetPassThroughButtons()'.
+[!BugGrabber/BugGrabber.lua]:554: in function '?'
+[!BugGrabber/BugGrabber.lua]:538: in function <!BugGrabber/BugGrabber.lua:538>
+[C]: in function 'SetPassThroughButtons'
+[Blizzard_MapCanvas/MapCanvas_DataProviderBase.lua]:290: in function 'CheckMouseButtonPassthrough'
+[Blizzard_MapCanvas/Blizzard_MapCanvas.lua]:302: in function 'AcquirePin'
+[Blizzard_SharedMapDataProviders/QuestDataProvider.lua]:194: in function 'AddQuest'
+[Blizzard_FlightMap/FM_QuestDataProvider.lua]:12: in function 'AddQuest'
+[Blizzard_SharedMapDataProviders/QuestDataProvider.lua]:134: in function 'CheckAddQuest'
+[Blizzard_SharedMapDataProviders/QuestDataProvider.lua]:141: in function 'RefreshAllData'
+[Blizzard_MapCanvas/Blizzard_MapCanvas.lua]:636: in function <...aceBlizzard_MapCanvas/Blizzard_MapCanvas.lua:635>
+[C]: in function 'secureexecuterange'
+[Blizzard_MapCanvas/Blizzard_MapCanvas.lua]:640: in function 'RefreshAllDataProviders'
+...[C]: in function 'Show'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:456: in function 'SetUIPanel'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:258: in function 'ShowUIPanel'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:128: in function <...UIParentPanelManager/Shared/UIParentPanelManager.lua:123>
+[C]: in function 'SetAttribute'
+[Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua]:847: in function 'ShowUIPanel'
+[Blizzard_FlightMap/Blizzard_FlightMap_Bootstrap.lua]:9: in function 'ShowFlightMapFrame'
+[Blizzard_Game/Mainline/EventImplementation.lua]:726: in function 'HandleTaxiMapOpened'
+[Blizzard_Game/Mainline/EventRouting.lua]:104: in function 'handler'
+[Blizzard_Game/Shared/EventRouting.lua]:7: in function <Blizzard_Game/Shared/EventRouting.lua:4>
+
+
+Locals:
+self=<table>
+event="ADDON_ACTION_BLOCKED"
+addonName="AsItWas"
+addonFunc="Button:SetPassThroughButtons()"
+name="AsItWas"
+badAddons=<table>{
+ AsItWas=true
+}
+L=<table>{
+ NO_DISPLAY_2="|cffffff00The standard display is called BugSack, and can probably be found on the same site where you found !BugGrabber.|r"
+ ERROR_DETECTED="%s |cffffff00captured, click the link for more information.|r"
+ BUGGRABBER_STOPPED="|cffffff00There are too many errors in your UI. As a result, your game experience may be degraded. Disable or update the failing addons if you don't want to see this message again.|r"
+ USAGE="|cffffff00Usage: /buggrabber <1-%d>.|r"
+ STOP_NAG="|cffffff00!BugGrabber will not nag about missing a display addon again until next patch.|r"
+ NO_DISPLAY_STOP="|cffffff00If you don't want to be reminded about this again, run /stopnag.|r"
+ NO_DISPLAY_1="|cffffff00You seem to be running !BugGrabber with no display addon to go along with it. Although a slash command is provided for accessing error reports, a display can help you manage these errors in a more convenient way.|r"
+ ERROR_UNABLE="|cffffff00!BugGrabber is unable to retrieve errors from other players by itself. Please install BugSack or a similar display addon that might give you this functionality.|r"
+ ADDON_CALL_PROTECTED="[%s] AddOn '%s' tried to call the protected function '%s'."
+}
+
+
+
+
+
+8x Blizzard_SharedXML/LayoutFrame.lua:491: attempt to compare a secret number value (execution tainted by 'AsItWas')
+[Blizzard_SharedXML/LayoutFrame.lua]:491: in function <Blizzard_SharedXML/LayoutFrame.lua:486>
+[tail call]: ?
+[Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:213: in function 'DefaultWidgetLayout'
+[Blizzard_GameTooltip/Mainline/GameTooltip.lua]:584: in function 'layoutFunc'
+[Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:606: in function 'UpdateWidgetLayout'
+[Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:295: in function 'UnregisterForWidgetSet'
+[Blizzard_GameTooltip/Mainline/GameTooltip.lua]:614: in function 'GameTooltip_ClearWidgetSet'
+[Blizzard_GameTooltip/Mainline/GameTooltip.lua]:411: in function <Blizzard_GameTooltip/Mainline/GameTooltip.lua:395>
+[C]: ?
+[C]: ?
+[C]: in function 'Hide'
+[Blizzard_SharedMapDataProviders/AreaPOIDataProvider.lua]:212: in function <...zzard_SharedMapDataProviders/AreaPOIDataProvider.lua:194>
+
+
+Locals:
+self=Frame <GameTooltip.lua:594>{
+ horizontalAnchorXOffset=2
+ verticalAnchorPoint="TOPLEFT"
+ disableWidgetTooltips=true
+ widgetFrames=<table>
+ horizontalRelativePoint="RIGHT"
+ verticalAnchorYOffset=0
+ shownWidgetCount=0
+ dirty=true
+ widgetSetLayoutDirection=0
+ numWidgetsShowing=0
+ numTimers=0
+ timerWidgets=<table>
+ horizontalRowContainerPool=<table>
+ widgetPools=<table>
+ BackModelScene=ModelScene <Blizzard_UIWidgetManager.xml:46>
+ FrontModelScene=ModelScene <Blizzard_UIWidgetManager.xml:33>
+ verticalRelativePoint="BOTTOMLEFT"
+ widgetSetID=1333
+ horizontalAnchorPoint="LEFT"
+ showAndHideOnWidgetSetRegistration=false
+}
+(*temporary)=<secret number>
+(*temporary)=Frame <GameTooltip.lua:594>{
+ horizontalAnchorXOffset=2
+ verticalAnchorPoint="TOPLEFT"
+ disableWidgetTooltips=true
+ widgetFrames=<table>
+ horizontalRelativePoint="RIGHT"
+ verticalAnchorYOffset=0
+ shownWidgetCount=0
+ dirty=true
+ widgetSetLayoutDirection=0
+ numWidgetsShowing=0
+ numTimers=0
+ timerWidgets=<table>
+ horizontalRowContainerPool=<table>
+ widgetPools=<table>
+ BackModelScene=ModelScene <Blizzard_UIWidgetManager.xml:46>
+ FrontModelScene=ModelScene <Blizzard_UIWidgetManager.xml:33>
+ verticalRelativePoint="BOTTOMLEFT"
+ widgetSetID=1333
+ horizontalAnchorPoint="LEFT"
+ showAndHideOnWidgetSetRegistration=false
+}
+(*temporary)=<secret number>
+(*temporary)=1
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)=nil
+(*temporary)="attempt to compare a secret number value (execution tainted by 'AsItWas')"
+
+
+
+
+
+1x ...UIWidgets/Blizzard_UIWidgetTemplateTextWithState.lua:31: bad argument #1 to 'SetWidth' (Usage: self:SetWidth(width). Secret values are only allowed during untainted execution for this argument.)
+[Blizzard_UIWidgets/Blizzard_UIWidgetTemplateTextWithState.lua]:31: in function 'Setup'
 [Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:526: in function 'ProcessWidget'
 [Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:562: in function 'ProcessAllWidgets'
 [Blizzard_UIWidgets/Blizzard_UIWidgetManager.lua]:275: in function 'RegisterForWidgetSet'
-[Blizzard_GameTooltip/Mainline/GameTooltip.lua]:602: in function <Blizzard_GameTooltip/Mainline/GameTooltip.lua:588>
-[C]: in function 'securecallfunction'
-[AsItWas/AsItWasMap.lua]:24: in function 'GameTooltip_AddWidgetSet'
+[Blizzard_GameTooltip/Mainline/GameTooltip.lua]:602: in function 'GameTooltip_AddWidgetSet'
 [Blizzard_FrameXMLUtil/AreaPoiUtil.lua]:44: in function <Blizzard_FrameXMLUtil/AreaPoiUtil.lua:3>
 [tail call]: ?
+[C]: in function 'TryShowTooltip'
 [Blizzard_SharedMapDataProviders/AreaPOIDataProvider.lua]:166: in function <...zzard_SharedMapDataProviders/AreaPOIDataProvider.lua:159>
 [C]: ?
 [C]: ?
+[C]: ?
+[C]: ?
+[C]: ?
+[C]: ?
+[C]: ?
+[C]: ?
+[C]: ?
+[C]: ?
+[C]: ?
+[C]: in function 'OnMouseEnter'
+[Blizzard_SharedMapDataProviders/QuestOfferDataProvider.lua]:885: in function <...rd_SharedMapDataProviders/QuestOfferDataProvider.lua:884>
 
 
 Locals:
@@ -20,7 +208,7 @@ self=Frame <Blizzard_UIWidgetManager.lua:432>{
  widgetType=8
  tooltipContainsHyperLink=false
  tooltip=""
- widgetID=7412
+ widgetID=6080
  widgetContainer=Frame <GameTooltip.lua:594>
  tooltipAnchor="ANCHOR_BOTTOMLEFT"
  FadeInAnim=AnimationGroup <Blizzard_UIWidgetTemplateBase.xml:16>
@@ -32,7 +220,7 @@ self=Frame <Blizzard_UIWidgetManager.lua:432>{
  inAnimType=0
  widgetTag=""
  orderIndex=0
- widgetSetID=1799
+ widgetSetID=1333
  defaultTooltipAnchor="ANCHOR_BOTTOMLEFT"
  hasTimer=false
  FadeOutAnim=AnimationGroup <Blizzard_UIWidgetTemplateBase.xml:23>
@@ -46,11 +234,11 @@ widgetInfo=<table>{
  tooltipLoc=0
  fontType=0
  shownState=1
- widgetSizeSetting=250
+ widgetSizeSetting=0
  bottomPadding=0
- enabledState=1
+ enabledState=3
  textSizeType=0
- text="Story Variant: |cnWHITE_FONT_COLOR:March of the Arcane Brigade"
+ text="|TInterface/Icons/UI_MajorFactions_Storm:32|t Council of Dornogal"
  orderIndex=0
  layoutDirection=0
  inAnimType=0
@@ -58,7 +246,7 @@ widgetInfo=<table>{
  hasTimer=false
  outAnimType=0
  tooltip=""
- hAlign=0
+ hAlign=1
 }
 widgetContainer=Frame <GameTooltip.lua:594>{
  horizontalAnchorXOffset=2
@@ -78,14 +266,7 @@ widgetContainer=Frame <GameTooltip.lua:594>{
  BackModelScene=ModelScene <Blizzard_UIWidgetManager.xml:46>
  FrontModelScene=ModelScene <Blizzard_UIWidgetManager.xml:33>
  verticalRelativePoint="BOTTOMLEFT"
- widgetSetID=1799
+ widgetSetID=1333
  horizontalAnchorPoint="LEFT"
  showAndHideOnWidgetSetRegistration=false
 }
-textHeight=<secret number>
-(*temporary)=0
-(*temporary)=0
-(*temporary)=0
-(*temporary)=1
-(*temporary)=0
-(*temporary)="attempt to perform arithmetic on local 'textHeight' (a secret number value, while execution tainted by 'AsItWas')"

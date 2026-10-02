@@ -13,10 +13,13 @@ The Cursor workspace is often `MK/MemoryKeeper/MemoryKeeper`. **As It Was is not
 code is this folder. Do not write As It Was files into MemoryKeeper. Writes from a MemoryKeeper
 workspace into `AsItWas/` may need extra permissions (`all`).
 
-## Read this before writing a single line: verify the API against live sources
+## Read this before writing a single line: audit the API against live sources
 
 Work based on a model's memory of the WoW API is garbage. The API changes every patch. **Look it
-up. Every time. Even for things that feel obvious.**
+up. Every time. Even for things that feel obvious.** Before changing taint, secret-value, tooltip,
+map-pin, or protected-frame code, first read/update `WOW12_API_AUDIT.md` and cross-reference every
+affected Blizzard API, frame, mixin, argument, return value, and call path with current Blizzard
+source and generated API metadata. Do not begin with an in-game guess or a remembered workaround.
 
 Where to look, in order of authority:
 

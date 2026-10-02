@@ -1,17 +1,13 @@
-package-as: AsItWas
-
 manual-changelog: CHANGELOG.txt
 
 ignore:
     - tools
     - README.md
+    - FAILED_EXPERIMENTS.md
+    - WOW12_API_AUDIT.md
     - CHANGELOG.txt
     - HANDOFF.md
     - SPEC.md
     - UPDATE.md
-    - "Reported lua errors.txt"
-    - "lua errors after change.txt"
     - data/quest_patches.csv
     - data/quest_patches_meta.json
-    - textures/_arrows_preview.png
-    - textures/chips/_preview.png

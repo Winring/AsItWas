@@ -330,93 +330,6 @@ local function WrapTracker()
     end)
 end
 
-local mapTooltipHooks = {}
-local pendingMapTooltipQuestID
-local mapTooltipRetitleScheduled = false
-local mapTooltipRetitling = false
-
-local function FlushMapTooltipRetitle()
-    mapTooltipRetitleScheduled = false
-    local questID = pendingMapTooltipQuestID
-    pendingMapTooltipQuestID = nil
-    if questID then
-        mapTooltipRetitling = true
-        AIW.RetitleMapTooltip(questID)
-        mapTooltipRetitling = false
-    end
-end
-
-local function QueueMapTooltipRetitle(questID)
-    if not questID then
-        return
-    end
-    if mapTooltipRetitling then
-        return
-    end
-    pendingMapTooltipQuestID = questID
-    if mapTooltipRetitleScheduled then
-        return
-    end
-    mapTooltipRetitleScheduled = true
-    if C_Timer and C_Timer.After then
-        C_Timer.After(0, FlushMapTooltipRetitle)
-    else
-        FlushMapTooltipRetitle()
-    end
-end
-
-local function HookMapTooltips()
-    if not mapTooltipHooks.title and GameTooltip_SetTitle then
-        mapTooltipHooks.title = true
-        hooksecurefunc("GameTooltip_SetTitle", function(tooltip, title)
-            if tooltip ~= GameTooltip or not title or title == RETRIEVING_DATA then
-                return
-            end
-            local owner = tooltip.GetOwner and tooltip:GetOwner()
-            local questID = owner and (owner.GetQuestID and owner:GetQuestID() or owner.questID)
-            if not questID then
-                return
-            end
-            local marked = AIW.MarkTitle(questID, title, "map")
-            if marked ~= title then
-                local line = _G[tooltip:GetName() .. "TextLeft1"]
-                if line then
-                    line:SetText(marked)
-                end
-            end
-        end)
-    end
-    if not mapTooltipHooks.text and GameTooltip and GameTooltip.SetText then
-        mapTooltipHooks.text = true
-        hooksecurefunc(GameTooltip, "SetText", function(tooltip, title)
-            if tooltip ~= GameTooltip or not title or title == RETRIEVING_DATA then
-                return
-            end
-            local owner = tooltip.GetOwner and tooltip:GetOwner()
-            local questID = owner and (owner.GetQuestID and owner:GetQuestID() or owner.questID)
-            if not questID then
-                return
-            end
-            local marked = AIW.MarkTitle(questID, title, "map")
-            if marked ~= title then
-                local line = _G[tooltip:GetName() .. "TextLeft1"]
-                if line then
-                    line:SetText(marked)
-                end
-            end
-        end)
-    end
-    if not mapTooltipHooks.pin and QuestPinMixin and QuestPinMixin.OnMouseEnter then
-        mapTooltipHooks.pin = true
-        hooksecurefunc(QuestPinMixin, "OnMouseEnter", function(self)
-            local questID = self.GetQuestID and self:GetQuestID() or self.questID
-            if questID then
-                QueueMapTooltipRetitle(questID)
-            end
-        end)
-    end
-end
-
 WrapQuestLog()
 WrapQuestInfo()
 WrapQuestLogPopup()
@@ -427,8 +340,6 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_UIPanels_Game", function()
     WrapGossip()
     WrapGreeting()
 end)
-HookMapTooltips()
-EventUtil.ContinueOnAddOnLoaded("Blizzard_SharedMapDataProviders", HookMapTooltips)
 EventUtil.ContinueOnAddOnLoaded("Blizzard_ObjectiveTracker", WrapTracker)
 WrapDialogue()
 EventUtil.ContinueOnAddOnLoaded("DialogueUI", WrapDialogue)

@@ -1,9 +1,8 @@
 ## Interface: 120100
 ## Title: As It Was
 ## Notes: Play one expansion or patch as it was. Later-season quests stay marked.
-## Version: 0.1.0-beta
+## Version: 0.2.0
 ## Author: Winring
-## X-Curse-Project-ID: 1718273
 ## IconTexture: Interface\AddOns\AsItWas\AsItWas.png
 ## SavedVariablesPerCharacter: AsItWasDB
 
@@ -12,5 +11,6 @@ data/PatchList.lua
 AsItWas.lua
 AsItWasMap.lua
 AsItWasTitles.lua
+AsItWasMapTooltip.lua
 AsItWasLog.lua
 AsItWasOptions.lua

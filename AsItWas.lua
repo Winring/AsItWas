@@ -355,23 +355,34 @@ function AIW.MarkTitle(questID, title, style)
     return table.concat(parts, " ")
 end
 
-function AIW.RetitleMapTooltip(questID)
-    if not questID or not GameTooltip or not GameTooltip:IsShown() then
-        return
+-- Build only addon-owned text. The quest title is deliberately not an
+-- argument here: Blizzard-owned tooltip text may be a secret string and must
+-- never be compared, parsed, or concatenated by the addon.
+function AIW.MapTitlePrefix(questID)
+    if not AIW.IsEnabled() then
+        return ""
     end
-    local line = _G[GameTooltip:GetName() .. "TextLeft1"]
-    if not line then
-        return
+
+    local patch = AIW.QuestPatch(questID)
+    if not patch then
+        return table.concat({ SimpleMarkup(TEX_UNKNOWN, MARK_H), "[?]" }, " ")
     end
-    local text = line:GetText()
-    if not text or text == RETRIEVING_DATA then
-        return
+
+    local major = ExpansionMajorFromCode(patch)
+    local parts = {}
+    local kind = AIW.OutOfRangeKind(questID)
+    if kind == "newer" then
+        parts[#parts + 1] = FileMarkup(TEX_NEWER, ARROW_FILE, ARROW_FILE, MARK_H, MARK_H)
+    elseif kind == "older" then
+        parts[#parts + 1] = FileMarkup(TEX_OLDER, ARROW_FILE, ARROW_FILE, MARK_H, MARK_H)
     end
-    local marked = AIW.MarkTitle(questID, text, "map")
-    if marked ~= text then
-        line:SetText(marked)
-        GameTooltip:Show()
+
+    local chip = AIW.ExpansionChipMarkup(major)
+    if chip ~= "" then
+        parts[#parts + 1] = chip
     end
+    parts[#parts + 1] = AIW.FormatPatchCode(patch)
+    return table.concat(parts, " ")
 end
 
 function AIW.OnFilterChanged(callback)
