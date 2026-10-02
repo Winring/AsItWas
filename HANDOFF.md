@@ -118,7 +118,9 @@ Copy the whole folder (lua + `textures/`) and `/reload`.
 
 ### What is implemented
 
-* Mechanical QuestID → patch table from wago history (`tools/build_quest_patches.py`).
+* Mechanical QuestID → patch table from wago history (`tools/build_quest_patches.py`), with the
+  staged Wago + ATT + Warcraft Wiki workflow in `UPDATE.md` and
+  `tools/build_quest_patches_hybrid.py`.
 * Filter: one dropdown (Off, Legion and older, each expansion whole, each real `X.Y.Z`) plus
   **Include older quests**. Labels use wiki tokens: Legion, BfA, SL, DF, TWW, MN.
 * First-run window once per character; close / Esc / “No filter” = Off. `seenSetup` is set only
@@ -183,8 +185,9 @@ Rejected / do not re-open without the owner:
 
 ## Data table
 
-Rebuild after every new live retail patch. Mechanical. No AI, no Wowhead. Full maintainer notes:
-`UPDATE.md`.
+Rebuild after every new live retail patch. Mechanical. No AI, no Wowhead scraping. Wago remains the
+primary source; use the supplementary ATT/Wiki workflow in `UPDATE.md` for Legion, older, and missing
+IDs. Review its conflict report before promotion. Full maintainer notes: `UPDATE.md`.
 
 ```bash
 python3 tools/build_quest_patches.py

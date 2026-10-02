@@ -171,12 +171,232 @@
       "build": "12.1.0.69814"
     }
   ],
-  "quest_count": 66448,
+  "quest_count": 67153,
   "counts": {
-    "at_or_before": 28410,
-    "poi_backfill": 1616,
-    "id_only": 25524,
-    "poi": 10283,
-    "poi_after_id": 615
-  }
+    "wago_at_or_before": 22158,
+    "att_direct_conflict_latest": 545,
+    "att_direct": 3639,
+    "wago": 38038,
+    "warcraft_wiki": 345,
+    "att_inherited_conflict_latest": 188,
+    "att_inherited": 2240
+  },
+  "source": "wago_primary_att_wiki_supplement",
+  "conflict_count": 21,
+  "conflict_examples": {
+    "14488": [
+      {
+        "patch": "3.3.0",
+        "source": "att_direct"
+      },
+      {
+        "patch": "3.3.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "24647": [
+      {
+        "patch": "3.3.0",
+        "source": "att_direct"
+      },
+      {
+        "patch": "3.3.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "24648": [
+      {
+        "patch": "3.3.0",
+        "source": "att_direct"
+      },
+      {
+        "patch": "3.3.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "24649": [
+      {
+        "patch": "3.3.0",
+        "source": "att_direct"
+      },
+      {
+        "patch": "3.3.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "24650": [
+      {
+        "patch": "3.3.0",
+        "source": "att_direct"
+      },
+      {
+        "patch": "3.3.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "24658": [
+      {
+        "patch": "3.3.0",
+        "source": "att_direct"
+      },
+      {
+        "patch": "3.3.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "24659": [
+      {
+        "patch": "3.3.0",
+        "source": "att_direct"
+      },
+      {
+        "patch": "3.3.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "24660": [
+      {
+        "patch": "3.3.0",
+        "source": "att_direct"
+      },
+      {
+        "patch": "3.3.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "24662": [
+      {
+        "patch": "3.3.0",
+        "source": "att_direct"
+      },
+      {
+        "patch": "3.3.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "24663": [
+      {
+        "patch": "3.3.0",
+        "source": "att_direct"
+      },
+      {
+        "patch": "3.3.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "24664": [
+      {
+        "patch": "3.3.0",
+        "source": "att_direct"
+      },
+      {
+        "patch": "3.3.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "24665": [
+      {
+        "patch": "3.3.0",
+        "source": "att_direct"
+      },
+      {
+        "patch": "3.3.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "24666": [
+      {
+        "patch": "3.3.0",
+        "source": "att_direct"
+      },
+      {
+        "patch": "3.3.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "24804": [
+      {
+        "patch": "3.3.0",
+        "source": "att_direct"
+      },
+      {
+        "patch": "3.3.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "27411": [
+      {
+        "patch": "4.0.3",
+        "source": "att_direct_conflict_latest"
+      },
+      {
+        "patch": "2.3.0",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "27413": [
+      {
+        "patch": "7.0.3",
+        "source": "att_direct_conflict_latest"
+      },
+      {
+        "patch": "2.3.0",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "35685": [
+      {
+        "patch": "11.2.7",
+        "source": "att_direct"
+      },
+      {
+        "patch": "6.0.2",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "38197": [
+      {
+        "patch": "11.2.7",
+        "source": "att_direct"
+      },
+      {
+        "patch": "6.1.0",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "38201": [
+      {
+        "patch": "11.2.7",
+        "source": "att_direct"
+      },
+      {
+        "patch": "6.1.0",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "40944": [
+      {
+        "patch": "11.2.7",
+        "source": "att_direct"
+      },
+      {
+        "patch": "6.2.3",
+        "source": "warcraft_wiki"
+      }
+    ],
+    "45020": [
+      {
+        "patch": "7.1.0",
+        "source": "att_inherited"
+      },
+      {
+        "patch": "7.1.5",
+        "source": "warcraft_wiki"
+      }
+    ]
+  },
+  "candidate_universe_count": 67153,
+  "unresolved_candidate_ids": 0,
+  "unresolved_missing": 0,
+  "unresolved_missing_definition": "IDs missing from the union of the supplied Wago, ATT, and Wiki CSVs"
 }

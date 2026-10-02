@@ -44,3 +44,73 @@ The script fails if these probes drift. That means the rule or the dumps changed
 | 92924, 93387 | 12.1.0 |
 
 Useful flags: `--from-major 8` (default), `--cache-dir`, `--out-dir`.
+
+## Supplementing Legion and older quests
+
+Wago's retail history is still the primary source. Its oldest retail snapshot
+is 7.3.5, however, so its `at_or_before` rows do not distinguish Legion and
+older patches. The supplementary workflow below uses committed ATT database
+data and the public Warcraft Wiki API. It does not scrape Wowhead.
+
+The commands intentionally write to `.cache/` first. Review
+`quest_patches_meta.json` and `quest_patches_conflicts.json` before writing to
+`data/`.
+
+1. Obtain a local ATT checkout (the repository is MIT-licensed):
+
+   ```bash
+   git clone --depth 1 --filter=blob:none \
+     https://github.com/ATTWoWAddon/AllTheThings.git .cache/AllTheThings
+   ```
+
+2. Extract direct and inherited ATT timelines:
+
+   ```bash
+   python3 tools/analyze_att_quest_patches.py \
+     .cache/AllTheThings/.contrib/.db \
+     --out .cache/att-quest-patches
+   ```
+
+   This produces `.csv` and `.json`. By default the parser is Retail-only: it
+   excludes data inside ATT's `applyclassicphase(...)` and
+   `expansion(EXPANSION.CLASSIC, ...)` branches. Use `--include-classic` only
+   for a separate audit. ATT timeline suffixes such as `_LAUNCH`,
+   `_SEASONSTART`, and `_PHASEONE` are normalized to their numeric patch.
+   Ambiguous IDs are reported, not guessed.
+
+3. Fetch the Wiki's explicit `Added in patch` categories into staging:
+
+   ```bash
+   python3 tools/build_quest_patches_wiki.py \
+     --out-dir .cache/quest-patches-wiki
+   ```
+
+4. Build and inspect the hybrid result:
+
+   ```bash
+   python3 tools/build_quest_patches_hybrid.py \
+     --att .cache/att-quest-patches.csv \
+     --wiki .cache/quest-patches-wiki/quest_patches.csv \
+     --out-dir .cache/quest-patches-hybrid
+   cat .cache/quest-patches-hybrid/quest_patches_meta.json
+   cat .cache/quest-patches-hybrid/quest_patches_conflicts.json
+   ```
+
+   `unresolved_candidate_ids` only checks coverage of the union of the input
+   Wago, ATT, and Wiki CSVs. It is not a proof that the sources contain every
+   Retail quest ID.
+
+   Precedence is: exact Wago row, direct ATT timeline, inherited ATT timeline,
+   explicit Wiki row, then the original Wago baseline. When ATT has several
+   Retail candidates, the latest candidate is selected and the ambiguity stays
+   in the audit report. An ATT/Wiki disagreement selects ATT and remains listed
+   as a conflict for review.
+
+5. After review, promote the staged four data files:
+
+   ```bash
+   cp .cache/quest-patches-hybrid/{QuestPatches.lua,PatchList.lua,quest_patches.csv,quest_patches_meta.json} data/
+   ```
+
+   Do not copy `quest_patches_conflicts.json` into the addon data directory;
+   it is a maintainer audit artifact.
