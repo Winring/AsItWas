@@ -13,3 +13,4 @@ ignore:
     - data/quest_patches_meta.json
     - data/quest_expansions.csv
     - data/att_quest_database
+    - Reported lua errors.txt
