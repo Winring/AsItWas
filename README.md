@@ -27,7 +27,8 @@ When you finish your chosen chapter, change the filter to the next patch and con
 
 The setup is saved separately for each character. Closing the first-run window or choosing **No filter** leaves the addon inactive. The addon never removes quests automatically, and the original 3D exclamation marks above NPCs are left unchanged.
 
-> **Coverage:** Patch data is complete from *Battle for Azeroth* through *Midnight*. *Legion* and earlier content is included as a combined older-content baseline.
+> **Coverage:** Patch data includes every patch code currently emitted by ATT, plus
+> explicitly marked BfA+ fallback entries where ATT has no effective value.
 
 ## Commands
 

@@ -8,6 +8,7 @@
 
 data/QuestPatches.lua
 data/PatchList.lua
+data/QuestExpansions.lua
 AsItWas.lua
 AsItWasMap.lua
 AsItWasTitles.lua

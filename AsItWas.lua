@@ -4,6 +4,12 @@ AsItWas = AIW
 AsItWasDB = AsItWasDB or {}
 
 local EXPANSION_NAME = {
+    [1] = "Classic",
+    [2] = "The Burning Crusade",
+    [3] = "Wrath of the Lich King",
+    [4] = "Cataclysm",
+    [5] = "Mists of Pandaria",
+    [6] = "Warlords of Draenor",
     [7] = "Legion",
     [8] = "Battle for Azeroth",
     [9] = "Shadowlands",
@@ -16,6 +22,12 @@ local EXPANSION_NAME = {
 -- everywhere: HUD, titles, dropdown, future chip files. Full names stay
 -- in EXPANSION_NAME only and are never mixed into those labels.
 local EXPANSION_SHORT = {
+    [1] = "Classic",
+    [2] = "TBC",
+    [3] = "WotLK",
+    [4] = "Cata",
+    [5] = "MoP",
+    [6] = "WoD",
     [7] = "Legion",
     [8] = "BfA",
     [9] = "SL",
@@ -26,6 +38,12 @@ local EXPANSION_SHORT = {
 
 -- File stem for textures/chips/<stem>.png — matches the token, lowercase.
 local EXPANSION_CHIP = {
+    [1] = "classic",
+    [2] = "tbc",
+    [3] = "wotlk",
+    [4] = "cata",
+    [5] = "mop",
+    [6] = "wod",
     [7] = "legion",
     [8] = "bfa",
     [9] = "sl",
@@ -53,6 +71,16 @@ end
 
 function AIW.ExpansionShort(major)
     return EXPANSION_SHORT[major] or ("Exp" .. tostring(major))
+end
+
+-- One naming rule for every place that presents a filter: the expansion token
+-- comes first, followed by either "(whole)" or the exact patch.
+function AIW.FilterLabel(major, patch)
+    local short = AIW.ExpansionShort(major)
+    if patch then
+        return short .. " " .. patch
+    end
+    return short .. " (whole)"
 end
 
 function AIW.ExpansionChipStem(major)
@@ -133,43 +161,37 @@ function AIW.GetFilterOptions()
             byMajor[major][#byMajor[major] + 1] = row
         end
     end
-    table.sort(majorOrder)
+    -- The player normally works backward from the current game, so show the
+    -- newest expansion first and descend toward older content.
+    table.sort(majorOrder, function(a, b)
+        return a > b
+    end)
     for _, major in ipairs(majorOrder) do
         local group = byMajor[major]
-        local first = group[1]
-        local last = group[#group]
-        local short = AIW.ExpansionShort(major)
-        if major == 7 then
+        table.sort(group, function(a, b)
+            return a.code > b.code
+        end)
+        local newest = group[1]
+        local oldest = group[#group]
+        options[#options + 1] = {
+            id = tostring(major),
+            kind = "expansion",
+            major = major,
+            label = AIW.FilterLabel(major),
+            min = oldest.code,
+            max = newest.code,
+            patch = newest.patch,
+        }
+        for _, row in ipairs(group) do
             options[#options + 1] = {
-                id = first.patch,
-                kind = "baseline",
+                id = row.patch,
+                kind = "patch",
                 major = major,
-                label = short .. " and older",
-                min = first.code,
-                max = first.code,
-                patch = first.patch,
+                label = AIW.FilterLabel(major, row.patch),
+                min = row.code,
+                max = row.code,
+                patch = row.patch,
             }
-        else
-            options[#options + 1] = {
-                id = tostring(major),
-                kind = "expansion",
-                major = major,
-                label = short .. " (whole)",
-                min = first.code,
-                max = last.code,
-                patch = last.patch,
-            }
-            for _, row in ipairs(group) do
-                options[#options + 1] = {
-                    id = row.patch,
-                    kind = "patch",
-                    major = major,
-                    label = short .. " " .. row.patch,
-                    min = row.code,
-                    max = row.code,
-                    patch = row.patch,
-                }
-            end
         end
     end
     filterOptions = options
@@ -196,16 +218,10 @@ function AIW.GetFilterHudText()
     if not filter or filter.kind == "off" then
         return nil
     end
-    local short = AIW.ExpansionShort(filter.major)
-    local text
     if filter.kind == "patch" then
-        text = short .. " " .. filter.patch
-    elseif filter.kind == "baseline" then
-        text = short .. " and older"
-    else
-        text = short .. " (whole)"
+        return AIW.ColorizeExpansion(filter.major, AIW.FilterLabel(filter.major, filter.patch))
     end
-    return AIW.ColorizeExpansion(filter.major, text)
+    return AIW.ColorizeExpansion(filter.major, AIW.FilterLabel(filter.major))
 end
 
 function AIW.IsEnabled()
@@ -220,12 +236,19 @@ function AIW.QuestPatch(questID)
     return AsItWasQuestPatch and AsItWasQuestPatch[questID]
 end
 
+function AIW.QuestExpansion(questID)
+    if not questID then
+        return nil
+    end
+    return AsItWasQuestExpansion and AsItWasQuestExpansion[questID]
+end
+
 -- Unknown IDs are not treated as in-range for titles; overlay handles them separately.
 function AIW.IsUnknown(questID)
     if not AIW.IsEnabled() or not questID then
         return false
     end
-    return AIW.QuestPatch(questID) == nil
+    return AIW.QuestExpansion(questID) == nil
 end
 function AIW.IsInRange(questID)
     if not AIW.IsEnabled() then
@@ -233,7 +256,15 @@ function AIW.IsInRange(questID)
     end
     local patch = AIW.QuestPatch(questID)
     if not patch then
-        return true
+        local expansion = AIW.QuestExpansion(questID)
+        if not expansion then
+            return true
+        end
+        local filter = AIW.GetActiveFilter()
+        if AsItWasDB.includeOlder ~= false then
+            return expansion <= filter.major
+        end
+        return expansion >= filter.major and expansion <= filter.major
     end
     local filter = AIW.GetActiveFilter()
     if AsItWasDB.includeOlder ~= false then
@@ -248,7 +279,8 @@ function AIW.IsNewerThanFilter(questID)
     end
     local patch = AIW.QuestPatch(questID)
     if not patch then
-        return false
+        local expansion = AIW.QuestExpansion(questID)
+        return expansion ~= nil and expansion > AIW.GetActiveFilter().major
     end
     return patch > AIW.GetActiveFilter().max
 end
@@ -262,7 +294,8 @@ function AIW.IsOlderThanFilter(questID)
     end
     local patch = AIW.QuestPatch(questID)
     if not patch then
-        return false
+        local expansion = AIW.QuestExpansion(questID)
+        return expansion ~= nil and expansion < AIW.GetActiveFilter().major
     end
     return patch < AIW.GetActiveFilter().min
 end
@@ -332,6 +365,11 @@ function AIW.MarkTitle(questID, title, style)
     end
     local patch = AIW.QuestPatch(questID)
     if not patch then
+        local expansion = AIW.QuestExpansion(questID)
+        if expansion then
+            local parts = { AIW.ExpansionChipMarkup(expansion), AIW.ExpansionShort(expansion), title }
+            return table.concat(parts, " ")
+        end
         return table.concat({ SimpleMarkup(TEX_UNKNOWN, MARK_H), "[?]", title }, " ")
     end
     local major = ExpansionMajorFromCode(patch)
@@ -365,6 +403,10 @@ function AIW.MapTitlePrefix(questID)
 
     local patch = AIW.QuestPatch(questID)
     if not patch then
+        local expansion = AIW.QuestExpansion(questID)
+        if expansion then
+            return table.concat({ AIW.ExpansionChipMarkup(expansion), AIW.ExpansionShort(expansion) }, " ")
+        end
         return table.concat({ SimpleMarkup(TEX_UNKNOWN, MARK_H), "[?]" }, " ")
     end
 

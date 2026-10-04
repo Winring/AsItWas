@@ -15,37 +15,42 @@ Session notes, git/tag recipe, wow-ui clone, and the in-game test list live in `
 
 The project splits into a static offline parser and a live runtime UI filter:
 
-`historical client DB2 (wago)` → `tools/build_quest_patches.py` → `data/QuestPatches.lua` → `AsItWas` runtime filter
+`ATT C# parser` → `tools/att_quest_database/` → `data/QuestPatches.lua` → `AsItWas` runtime filter
 
 Display name **As It Was**. Technical name **AsItWas** (folder, toc, Lua global). SavedVariables are **per character** (`AsItWasDB`).
 
 ### Data harvesting (offline)
 
-Mechanical. Re-run the script after each retail patch. No AI, no Wowhead scrape.
+Mechanical. Re-run the ATT parser after each retail patch. No AI, Wago, Wiki,
+or Wowhead data is used to generate the table.
 
-```bash
-python3 tools/build_quest_patches.py
+```bat
+tools\att_quest_database\run_windows.bat C:\path\to\AllTheThings
 ```
 
-- **Source.** Retail `QuestV2` and `QuestPOIBlob` CSVs from wago.tools (Blizzard client tables, newest live build per `X.Y.Z`). Walk starts at **BfA**. Baseline is **7.3.5** (end of Legion, oldest dump on wago live `wow`) so Legion-and-older stay one bucket. Do not start mid-expansion. There is no retail **8.0.0**; BfA launch is **8.0.1**.
-- **Assignment.** `patch = later(first QuestV2, first QuestPOIBlob)`. Catches IDs shipped in files early whose map pin appears only with the later patch. Quests with no POI stay `id_only` (weaker). CSV `source=poi_after_id` is the grey/spoiler-bridge set.
-- **Output.** `data/quest_patches.csv`, `data/QuestPatches.lua`, `data/PatchList.lua`, `data/quest_patches_meta.json`. The script fails if hardcoded probes (83137, 92924, …) drift. Do not commit or ship `.cache/wago/`.
+- **Source.** ATT's processed C# object graph, including ATT's own hierarchy and timeline consolidation.
+- **Assignment.** Effective `awp` follows ATT runtime inheritance. Explicit child values override inherited parent values.
+- **Output.** `data/QuestPatches.lua`; audit copies live in `data/att_quest_database/`.
 
 ### Runtime evaluation
 
 The packaged addon ships `data/QuestPatches.lua`. Compare numeric patch codes (`MMmmpp`), not strings. Filter Off marks nothing. Unknown IDs (not in the table) are marked with `?` / `[?]`, not treated as in-range.
 
-**Widget.** One dropdown (Off, Legion and older, whole expansion, each real `X.Y.Z`) plus checkbox **Include older quests**. Internally each dropdown row is `min`/`max`.
+**Widget.** One dropdown (Off, newest expansion first, then its whole-expansion
+row and patches newest-to-oldest) plus checkbox **Include older quests**.
+Internally each dropdown row is `min`/`max`.
 
 - **Include older on:** unmarked if `patch <= max`
 - **Include older off:** unmarked if `min <= patch <= max`
 
-Built from the same wago live `X.Y.Z` snapshots as the quest table (8.0.1, 8.1.5, 8.2.5, … — never invent 8.0.0). Dropdown/HUD identity tokens are wiki abbreviations: Legion, BfA, SL, DF, TWW, MN. Full names stay out of those labels.
+Uses the numeric patch codes emitted by ATT. Dropdown/HUD identity tokens are abbreviations: Legion, BfA, SL, DF, TWW, MN. Full names stay out of those labels.
 
 - **BfA (whole)** → min 8.0.1, max 8.3.7 (all BfA, not Legion, unless Include older is on)
 - **BfA 8.0.1** → min = max = 8.0.1
 - Same pattern for SL / DF / TWW / MN
-- Baseline row **Legion and older** (7.3.5 bucket only; we have no 7.0–7.3 split)
+- Patch rows are shown for every patch code present in `PatchList.lua`, including
+  the ATT-provided Classic-through-Legion codes. The database now provides those
+  exact values, so they are no longer collapsed into a single Legion baseline.
 
 **First-run** (once per character): same dropdown (no Off row) + Include older + Confirm. Close / Esc / No filter = Off, never ask again on that character. Later changes go to Options.
 
@@ -84,7 +89,7 @@ Auto-accepted seasonal quests get the same mark. No auto-abandon.
 ## Maintenance
 
 1. Blizzard ships a new patch (for example 12.2).
-2. Run `python3 tools/build_quest_patches.py`.
+2. Run `tools\att_quest_database\run_windows.bat` against the updated ATT checkout.
 3. Ship the regenerated Lua with the unchanged UI filter.
 
 ## Status

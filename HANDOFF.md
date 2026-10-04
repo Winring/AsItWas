@@ -83,25 +83,22 @@ Where to look, in order of authority:
      bang, so read it for `C_QuestLog.ReadyForTurnIn` markers only.
    * `Enum.QuestClassification` — pin art only; filter is always `questID`
 
-2. **wago.tools** for the quest→patch table, not for Lua API. Retail live `wow` DB2 CSVs
-   (`QuestV2`, `QuestPOIBlob`). See **Data table** below. Do not treat Wowhead “Added in patch”
-   as a second gospel; it is the same first-seen-in-files signal.
+2. **ATT's processed C# parser output** for the quest→patch table. See **Data table** below.
+   Wowhead is only a manual audit reference, not a generation source.
 
 3. **Warcraft Wiki** for orientation only (`Template:LatestPatchInfo`, `TOC_format`). Frequently
    wrong. Never let it override Blizzard source.
 
 Practical notes: `WebFetch` on the wiki tends to hit Cloudflare; use `WebSearch` or `curl` with
-network. **Do not fetch wow-ui-source file-by-file over HTTP.** Python `urllib` SSL to wago failed
-in an earlier session; the builder uses `curl`.
+network. **Do not fetch wow-ui-source file-by-file over HTTP.**
 
 ### Versions — re-verify at the start of every session
 
 * Local UI clone currently at **12.1.0.69814** (commit `4e3cbb8`, 12 September 2026, branch `live`,
   `version.txt`). `.toc` is `## Interface: 120100`. Five-digit
   scheme: major, two digits minor, two digits patch. Wiki `LatestPatchInfo` can lag.
-* Last quest table snapshot: **12.1.0.69814** (`data/quest_patches_meta.json`). Those two build
-  numbers can differ; Interface follows the client the owner plays, the table follows newest wago
-  live `wow` per `X.Y.Z`.
+* Last quest table snapshot: ATT revision `00227e34db372de7b2940c86b2579bd6f468fcef`.
+  Interface follows the client the owner plays; the table follows the ATT checkout used for the build.
 * Addon version is `## Version: 0.1.0`. **Not released** (no `release0.1.0` tag yet). GitHub
   [Winring/AsItWas](https://github.com/Winring/AsItWas). No CurseForge project ID.
   Author in the toc is `Winring` (same as MemoryKeeper).
@@ -118,10 +115,10 @@ Copy the whole folder (lua + `textures/`) and `/reload`.
 
 ### What is implemented
 
-* Mechanical QuestID → patch table from wago history (`tools/build_quest_patches.py`), with the
-  staged Wago + ATT + Warcraft Wiki workflow in `UPDATE.md` and
-  `tools/build_quest_patches_hybrid.py`.
-* Filter: one dropdown (Off, Legion and older, each expansion whole, each real `X.Y.Z`) plus
+* Mechanical QuestID → patch table from ATT's C# parser (`tools/att_quest_database/`).
+  ATT is the source of truth; Wowhead is used only for manual audits.
+* Filter: one dropdown (Off, newest expansion first, each whole-expansion row
+  followed by its patches newest-to-oldest) plus
   **Include older quests**. Labels use wiki tokens: Legion, BfA, SL, DF, TWW, MN.
 * First-run window once per character; close / Esc / “No filter” = Off. `seenSetup` is set only
   after a successful `ApplyFilter` (a crash on first show can re-open it).
@@ -175,7 +172,7 @@ Rejected / do not re-open without the owner:
 
 * WowTimeline, QuestEpoch, NotYet, Enforcer, Guide in the name
 * Wowhead scrape as the table
-* Publishing wago CSV structure (derived integer map is fine)
+* Using Wago, Wiki, or Wowhead as the generation source
 * Guessed QuestID ranges
 * Hiding pins instead of a badge
 * Mixing full expansion names into HUD/title tokens (use Legion / BfA / SL / DF / TWW / MN only)
@@ -185,28 +182,17 @@ Rejected / do not re-open without the owner:
 
 ## Data table
 
-Rebuild after every new live retail patch. Mechanical. No AI, no Wowhead scraping. Wago remains the
-primary source; use the supplementary ATT/Wiki workflow in `UPDATE.md` for Legion, older, and missing
-IDs. Review its conflict report before promotion. Full maintainer notes: `UPDATE.md`.
+Rebuild after every new live retail patch with the ATT C# parser. ATT remains the sole generation
+source; use Wowhead only for manual spot checks of multi-`awp` records. Full maintainer notes:
+`UPDATE.md`.
 
-```bash
-python3 tools/build_quest_patches.py
+```bat
+tools\att_quest_database\run_windows.bat C:\path\to\AllTheThings
 ```
 
-Needs `python3` and `curl`. Cache: `.cache/wago/` (gitignored). **Never commit or ship those CSVs.
-Never republish wago's table layout.** Ship `data/QuestPatches.lua` and `data/PatchList.lua`.
-CSV/JSON in `data/` are maintainer copies; the client does not load them.
-
-* Source: live `wow` builds on wago.tools, newest build per `X.Y.Z`.
-* Walk from BfA. There is **no 8.0.0** on retail; launch is **8.0.1**.
-* Baseline **7.3.5** (oldest live dump) = Legion-and-older as one bucket. Pre-BfA minor patches
-  (Northrend 3.0 vs 3.3, etc.) **cannot** be split from this source.
-* Assignment: `patch = later(first QuestV2, first QuestPOIBlob)`.
-  `id_only` / `poi` / `poi_after_id` / `at_or_before` in the CSV.
-* Patch codes `MMmmpp` (`12.1.0` = `120100`). Compare numbers, not strings.
-* Probes must stay green (script fails otherwise): 83137/83151 → 11.1.0; 84876/84905 → 11.2.0;
-  92895 → 12.0.7; 92924/93387 → 12.1.0. `92924` is the grey case (ID in 12.0.x, POI in 12.1.0).
-* Last successful build: ~66448 quests, 42 snapshots, newest `12.1.0.69814`.
+The ATT checkout must be built with MSBuild. The parser writes the addon Lua
+and the JSON/CSV audit files; `data/att_quest_database/` stores the validated
+snapshot. Patch codes remain numeric `MMmmpp` (`12.1.0` = `120100`).
 
 Globals the addon reads: `AsItWasQuestPatch`, `AsItWasQuestPatchNewestBuild`, `AsItWasPatches`.
 
@@ -227,10 +213,10 @@ Loaded by the toc (order matters):
 | `textures/chips/*.png` | expansion wordmarks |
 
 Not loaded: `README.md` (CurseForge paste), `UPDATE.md` (table rebuild), `CHANGELOG.txt`,
-`pkgmeta.yaml`, `SPEC.md`, this file, `tools/build_quest_patches.py`.
+`pkgmeta.yaml`, `SPEC.md`, this file, `tools/att_quest_database/`.
 
 `pkgmeta.yaml` ignores `tools`, this file, `SPEC.md`, `UPDATE.md`, and the maintainer CSV/JSON.
-Do not pack wago CSVs or the Python builder. Do not pack `*_preview.png`.
+Do not pack the parser tools or `*_preview.png`.
 
 ## Git, tags, CurseForge — same ritual as MemoryKeeper
 
@@ -309,4 +295,4 @@ title hooks, no minimap clocks. Those are addressed in code. This pass is the ch
 
 1. Owner in-game pass on this commit; fix what actually breaks.
 2. CurseForge project when they want to ship 0.1.0 (changelog already has `We are alive!`).
-3. After the next retail patch: `python3 tools/build_quest_patches.py` and ship new Lua.
+3. After the next retail patch: rebuild with `tools\att_quest_database\run_windows.bat` and ship new Lua.
