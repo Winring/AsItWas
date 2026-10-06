@@ -1,3 +1,6 @@
+V0.3.1-beta
+- Hotfixed additional tainted Lua errors.
+
 V0.3.0-beta
 - Expanded quest database to include older expansions.
 

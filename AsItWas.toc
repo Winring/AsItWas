@@ -1,7 +1,7 @@
 ## Interface: 120100
 ## Title: As It Was
 ## Notes: Play one expansion or patch as it was. Later-season quests stay marked.
-## Version: 0.3.0-beta
+## Version: 0.3.1-beta
 ## Author: Winring
 ## IconTexture: Interface\AddOns\AsItWas\AsItWas.png
 ## SavedVariablesPerCharacter: AsItWasDB
