@@ -8,9 +8,10 @@ local _, AIW = ...
 local PIN_TEMPLATES = {
     "QuestPinTemplate",
     "QuestOfferPinTemplate",
-    "WorldQuestPinTemplate",
-    "QuestHubPinTemplate",
-    "BonusObjectivePinTemplate",
+    -- Re-enable one at a time after the basic quest-pin path is stable:
+    -- "WorldQuestPinTemplate",
+    -- "QuestHubPinTemplate",
+    -- "BonusObjectivePinTemplate",
 }
 
 local TITLE_CACHE = setmetatable({}, { __mode = "k" })
