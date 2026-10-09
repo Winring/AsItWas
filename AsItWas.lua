@@ -476,19 +476,57 @@ function AIW.Print(msg)
     print("|cff66ccffAs It Was|r:", msg)
 end
 
--- Diagnostics only. Off by default and the first line returns before any
--- string work, because the minimap pass runs from OnUpdate.
-function AIW.Debug(fmt, ...)
-    if not AsItWasDB or not AsItWasDB.debug then
-        return
+-- Addon-owned hover hint. GameTooltip is shared with Blizzard's secure map and
+-- widget tooltips; SetOwner/Show/Hide from addon code run its scripts under
+-- this addon's taint, so the addon never uses GameTooltip at all.
+local HINT_WIDTH = 260
+local HINT_PADDING = 8
+local hint
+
+local function EnsureHint()
+    if hint then
+        return hint
     end
-    print("|cff66ccffAIW|r " .. string.format(fmt, ...))
+    hint = CreateFrame("Frame", "AsItWasHint", UIParent, "TooltipBackdropTemplate")
+    hint:SetFrameStrata("TOOLTIP")
+    hint:SetClampedToScreen(true)
+    hint:Hide()
+    local title = hint:CreateFontString(nil, "ARTWORK", "GameTooltipHeaderText")
+    title:SetPoint("TOPLEFT", HINT_PADDING, -HINT_PADDING)
+    title:SetJustifyH("LEFT")
+    title:SetTextColor(1, 1, 1)
+    hint.Title = title
+    local body = hint:CreateFontString(nil, "ARTWORK", "GameTooltipText")
+    body:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+    body:SetWidth(HINT_WIDTH)
+    body:SetJustifyH("LEFT")
+    body:SetWordWrap(true)
+    body:SetTextColor(NORMAL_FONT_COLOR:GetRGB())
+    hint.Body = body
+    return hint
 end
 
-function AIW.ToggleDebug()
-    AIW.EnsureDB()
-    AsItWasDB.debug = not AsItWasDB.debug
-    AIW.Print(AsItWasDB.debug and "debug on" or "debug off")
+-- below = true places the hint under the owner, otherwise to its right.
+function AIW.ShowHint(owner, titleText, bodyText, below)
+    local frame = EnsureHint()
+    frame.Title:SetText(titleText)
+    frame.Body:SetText(bodyText)
+    local width = math.max(frame.Title:GetStringWidth(), HINT_WIDTH)
+    local height = frame.Title:GetStringHeight() + 4 + frame.Body:GetStringHeight()
+    frame:SetSize(width + HINT_PADDING * 2, height + HINT_PADDING * 2)
+    frame:ClearAllPoints()
+    if below then
+        frame:SetPoint("TOP", owner, "BOTTOM", 0, -2)
+    else
+        frame:SetPoint("LEFT", owner, "RIGHT", 2, 0)
+    end
+    frame:Show()
+end
+
+function AIW.HideHint()
+    if hint then
+        hint:Hide()
+    end
 end
 
 -- Same family as MinimapZoneText (GameFontNormal / Friz), one step smaller:
@@ -525,12 +563,9 @@ local function CreateFilterHud()
         AIW.OpenOptions()
     end)
     button:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-        GameTooltip:SetText("As It Was", 1, 1, 1)
-        GameTooltip:AddLine("Click to change the era filter.", nil, nil, nil, true)
-        GameTooltip:Show()
+        AIW.ShowHint(self, "As It Was", "Click to change the era filter.", true)
     end)
-    button:SetScript("OnLeave", GameTooltip_Hide)
+    button:SetScript("OnLeave", AIW.HideHint)
     hudButton = button
     UpdateFilterHud()
 end
@@ -584,10 +619,11 @@ SlashCmdList.ASITWAS = function(msg)
         AsItWasDB.seenSetup = false
         AIW.ShowFirstRun()
     elseif msg == "debug" then
-        AIW.ToggleDebug()
-    elseif msg == "debug map" then
-        AIW.DumpMinimap()
+        -- Only the switch is saved, so it survives /reload; output is chat only.
+        AIW.EnsureDB()
+        AsItWasDB.debug = not AsItWasDB.debug
+        AIW.Print(AsItWasDB.debug and "debug on" or "debug off")
     else
-        AIW.Print("/aiw options  /aiw setup  /aiw abandon  /aiw debug  /aiw debug map")
+        AIW.Print("/aiw options  /aiw setup  /aiw abandon  /aiw debug")
     end
 end

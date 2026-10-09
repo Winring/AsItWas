@@ -172,32 +172,80 @@ local function WrapQuestLogPopup()
     hooksecurefunc("QuestLogPopupDetailFrame_Update", PrefixQuestLogPopupTitle)
 end
 
--- CreateFromMixins copies methods, so the derived gossip mixins already hold
--- their own UpdateTitleForQuest by the time we load (GossipFrameShared.lua:44,
--- GossipFrame.lua:35). Wrapping only the shared one never reaches the buttons.
-local GOSSIP_MIXINS = {
-    "GossipSharedQuestButtonMixin",
-    "GossipSharedAvailableQuestButtonMixin",
-    "GossipSharedActiveQuestButtonMixin",
-    "GossipQuestButtonMixin",
-    "GossipAvailableQuestButtonMixin",
-    "GossipActiveQuestButtonMixin",
-}
+-- Gossip buttons are decorated from our own ticker, never from inside
+-- Blizzard's gossip code. Replacing or hooking UpdateTitleForQuest put addon
+-- code into the secure gossip setup (the ScrollBox initializer), and taint
+-- written there reaches shared quest state. The ticker only reads Blizzard
+-- state and calls SetText on the visible quest buttons.
+local GOSSIP_POLL_SECONDS = 0.1
 
-local wrappedGossipMixins = {}
+local function GossipQuestDisplay(info)
+    if info.isIgnored then
+        return IGNORED_QUEST_DISPLAY
+    elseif info.isTrivial then
+        return TRIVIAL_QUEST_DISPLAY
+    end
+    return NORMAL_QUEST_DISPLAY
+end
 
-local function WrapGossip()
-    for _, name in ipairs(GOSSIP_MIXINS) do
-        local mixin = _G[name]
-        if mixin and not wrappedGossipMixins[name] and rawget(mixin, "UpdateTitleForQuest") then
-            wrappedGossipMixins[name] = true
-            local original = mixin.UpdateTitleForQuest
-            mixin.UpdateTitleForQuest = function(self, questID, titleText, isIgnored, isTrivial)
-                original(self, questID, AIW.MarkTitle(questID, titleText), isIgnored, isTrivial)
+local function CollectGossipQuests()
+    local quests = {}
+    for _, list in ipairs({ C_GossipInfo.GetAvailableQuests(), C_GossipInfo.GetActiveQuests() }) do
+        for _, info in ipairs(list) do
+            if info.questID and info.title and not (issecretvalue and issecretvalue(info.title)) then
+                quests[info.questID] = info
             end
         end
     end
+    return quests
+end
+
+local function DecorateGossipButtons()
+    local scrollBox = GossipFrame and GossipFrame.GreetingPanel and GossipFrame.GreetingPanel.ScrollBox
+    local target = scrollBox and scrollBox.ScrollTarget
+    if not target then
+        return
+    end
+    local quests
+    -- GetChildren is a widget API, so enumerating runs no Blizzard Lua. Quest
+    -- buttons are the only children with UpdateTitleForQuest, and their
+    -- Setup sets the button ID to the quest ID (GossipFrameShared.lua:47).
+    for _, button in ipairs({ target:GetChildren() }) do
+        if button:IsShown() and button.UpdateTitleForQuest then
+            quests = quests or CollectGossipQuests()
+            local questID = button:GetID()
+            local info = quests[questID]
+            if info then
+                local text = GossipQuestDisplay(info):format(AIW.MarkTitle(questID, info.title))
+                if button:GetText() ~= text then
+                    button:SetText(text)
+                end
+            end
+        end
+    end
+end
+
+local function WrapGossip()
+    if hooked.gossip then
+        return
+    end
     hooked.gossip = true
+    local ticker = CreateFrame("Frame")
+    ticker.elapsed = GOSSIP_POLL_SECONDS
+    ticker:SetScript("OnUpdate", function(self, delta)
+        -- Primed while hidden so a freshly opened window is marked on its
+        -- first frame instead of flashing the plain titles.
+        if not GossipFrame or not GossipFrame:IsShown() then
+            self.elapsed = GOSSIP_POLL_SECONDS
+            return
+        end
+        self.elapsed = self.elapsed + delta
+        if self.elapsed < GOSSIP_POLL_SECONDS then
+            return
+        end
+        self.elapsed = 0
+        DecorateGossipButtons()
+    end)
 end
 
 local function PrefixGreetingButtons()

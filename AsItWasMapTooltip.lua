@@ -1,9 +1,20 @@
 local _, AIW = ...
 
--- Do not hook QuestPinMixin:OnMouseEnter and do not read GameTooltip's
--- FontStrings. Blizzard's map hover path can run in a secure/tainted range,
--- and its title may be a secret string. Instead, observe already-acquired
--- pins from our own ticker and render an addon-owned tooltip.
+-- Never hide, show, own or hook GameTooltip from this file. Doing so runs
+-- Blizzard's tooltip scripts (GameTooltip_OnHide clears the widget container)
+-- under this addon's taint, and the next AreaPOI widget tooltip then reads those
+-- fields and fails on secret text metrics. Only read-only widget getters
+-- (IsShown, GetOwner, GetWidth, GetFrameLevel) are used on it.
+--
+-- An addon-owned tooltip with the era prefix is drawn on top of Blizzard's own
+-- pin tooltip, so one tooltip is visible. The lines of Blizzard's two quest pin
+-- handlers are rebuilt here; anything else Blizzard adds stays under ours.
+--
+-- Pin frames are pooled, and a pin positioned in a restricted context keeps
+-- secret anchoring; GameTooltip anchored to it, and ours anchored to
+-- GameTooltip, inherit it. No Lua here measures or does arithmetic on our own
+-- or Blizzard's geometry: ours is a GameTooltip widget, so the client sizes and
+-- lays it out, and a secret width or level is simply not used.
 
 local PIN_TEMPLATES = {
     "QuestPinTemplate",
@@ -14,10 +25,27 @@ local PIN_TEMPLATES = {
     -- "BonusObjectivePinTemplate",
 }
 
-local TITLE_CACHE = setmetatable({}, { __mode = "k" })
-local tooltip
+local FLOOR_COLOR = { r = 0.5, g = 0.5, b = 0.5 }
+
+local cover
 local currentPin
-local elapsed = 0
+local currentQuestID
+local currentLines
+local filledLines
+local lastReport
+
+-- /aiw debug: one chat line per hovered pin, repeated only when the outcome
+-- changes, because Update runs every frame.
+local function Report(questID, outcome)
+    if not AsItWasDB or not AsItWasDB.debug then
+        return
+    end
+    local message = string.format("map tooltip, quest %s: %s", tostring(questID), outcome)
+    if message ~= lastReport then
+        lastReport = message
+        AIW.Print(message)
+    end
+end
 
 local function GetQuestID(pin)
     if not pin then
@@ -32,151 +60,169 @@ local function GetQuestID(pin)
     return pin.questID
 end
 
-local function ReadQuestTitle(pin, questID)
-    -- Use the same source as QuestPinMixin. The returned title is passed
-    -- directly to the addon-owned tooltip; it is never compared or parsed.
-    -- QuestOfferPinMixin carries its display title as questName because an
-    -- available quest is not necessarily in the quest log yet.
-    if pin then
-        if pin.questName then
-            return pin.questName
-        end
-    end
-    if C_QuestLog and C_QuestLog.GetTitleForQuestID then
-        local ok, title = pcall(C_QuestLog.GetTitleForQuestID, questID)
-        if ok and title then
-            return title
-        end
-    end
+local function IsSecret(value)
+    return issecretvalue and issecretvalue(value)
 end
 
-local function GetBlizzardQuestTitleColor(pin, questID, isQuestOffer)
-    -- Match GameTooltip_AddQuest's title-color branches instead of assigning
-    -- one fixed addon color. World-quest quality is data-driven by Blizzard.
-    local isWorldQuest = pin.worldQuest
-    if not isWorldQuest and C_QuestLog.IsWorldQuest then
-        isWorldQuest = C_QuestLog.IsWorldQuest(questID)
+-- SharedTooltipTemplate, not GameTooltipTemplate: its scripts only touch the
+-- tooltip itself (SharedTooltipTemplates.lua), while GameTooltipTemplate's
+-- OnHide also hides the shared BattlePetTooltip and clears
+-- TooltipComparisonManager, both global Blizzard state.
+local function EnsureCover()
+    if cover then
+        return cover
     end
-    if isWorldQuest and ColorManager and ColorManager.GetColorDataForWorldQuestQuality then
-        local tagInfo = C_QuestLog.GetQuestTagInfo(questID)
-        local quality = tagInfo and tagInfo.quality or Enum.WorldQuestQuality.Common
-        local colorData = ColorManager.GetColorDataForWorldQuestQuality(quality)
-        if colorData and colorData.color then
-            return colorData.color
-        end
-    end
-
-    -- Blizzard's NORMAL_FONT_COLOR is the gold quest-title color. The
-    -- confusingly named HIGHLIGHT_FONT_COLOR is white and is used by the
-    -- secondary available/type/objective lines.
-    return NORMAL_FONT_COLOR
+    cover = CreateFrame("GameTooltip", "AsItWasMapTooltip", UIParent, "SharedTooltipTemplate")
+    cover:Hide()
+    -- The tooltip background art is semi-transparent, so Blizzard's tooltip
+    -- text would show through ours. A solid fill in the same color sits under
+    -- it, inset to stay inside the rounded border.
+    local fill = cover:CreateTexture(nil, "BACKGROUND", nil, -8)
+    fill:SetPoint("TOPLEFT", cover, "TOPLEFT", 3, -3)
+    fill:SetPoint("BOTTOMRIGHT", cover, "BOTTOMRIGHT", -3, 3)
+    local r, g, b = TOOLTIP_DEFAULT_BACKGROUND_COLOR:GetRGB()
+    fill:SetColorTexture(r, g, b, 1)
+    return cover
 end
 
-local function AddOfficialQuestLines(frame, pin, questID, title)
-    -- Keep our decoration directly before the title on the same line. The
-    -- prefix is addon-owned and the title comes from the pin/quest API; we
-    -- never read or rewrite Blizzard's existing tooltip text.
-    local prefix = AIW.MapTitlePrefix(questID)
-    local isQuestOffer = pin.pinTemplate == "QuestOfferPinTemplate" or pin.questName ~= nil
-    local titleColor = GetBlizzardQuestTitleColor(pin, questID, isQuestOffer)
-    local displayTitle = title
-    if prefix ~= "" then
-        displayTitle = prefix .. " " .. title
-    end
-    GameTooltip_AddColoredLine(frame, displayTitle, titleColor)
-    local titleLine = frame.TextLeft1
-    if titleLine then
-        titleLine:SetFontObject(GameTooltipHeaderText)
-        titleLine:SetTextColor(titleColor:GetRGB())
+local function AddLine(lines, text, color, wrap)
+    lines[#lines + 1] = { text = text, color = color, wrap = wrap }
+end
+
+-- The same lines Blizzard's pin handlers add (QuestPinMixin:OnMouseEnter in
+-- QuestDataProvider.lua and the quest-start branch of GameTooltip_AddQuest in
+-- GameTooltip.lua), rebuilt from C APIs and plain pin fields only.
+-- Returns nil only while the quest title is not available yet.
+local function BuildLines(pin, questID, prefix)
+    local isOffer = pin.pinTemplate == "QuestOfferPinTemplate"
+    local title = (isOffer and pin.questName) or C_QuestLog.GetTitleForQuestID(questID)
+    if not title or IsSecret(title) then
+        return nil
     end
 
-    if QuestUtils_AddQuestTypeToTooltip and not isQuestOffer then
-        -- This matches QuestPinMixin: only dungeon/raid type data is added
-        -- here; the helper supplies Blizzard's native icon markup and color.
-        QuestUtils_AddQuestTypeToTooltip(frame, questID, NORMAL_FONT_COLOR)
-    end
-    if isQuestOffer then
-        -- This is the non-world-quest branch from Blizzard's GameTooltip_AddQuest.
-        -- QuestOfferPinMixin provides this state in the acquired pin data; it
-        -- is not present in the quest log yet.
-        local isCombatAlly = pin.isCombatAllyQuest
-        if not isCombatAlly and C_QuestLog.GetQuestType and Enum.QuestTag.CombatAlly then
-            isCombatAlly = C_QuestLog.GetQuestType(questID) == Enum.QuestTag.CombatAlly
-        end
-        if isCombatAlly then
-            GameTooltip_AddColoredLine(frame, AVAILABLE_FOLLOWER_QUEST, HIGHLIGHT_FONT_COLOR, true)
-            GameTooltip_AddColoredLine(frame, GRANTS_FOLLOWER_XP, GREEN_FONT_COLOR, true)
+    local lines = {}
+    AddLine(lines, prefix .. " " .. title, NORMAL_FONT_COLOR, false)
+
+    if isOffer then
+        if pin.isCombatAllyQuest or C_QuestLog.GetQuestType(questID) == Enum.QuestTag.CombatAlly then
+            AddLine(lines, AVAILABLE_FOLLOWER_QUEST, HIGHLIGHT_FONT_COLOR, true)
+            AddLine(lines, GRANTS_FOLLOWER_XP, GREEN_FONT_COLOR, true)
         elseif pin.isQuestStart then
-            GameTooltip_AddColoredLine(frame, AVAILABLE_QUEST, HIGHLIGHT_FONT_COLOR, true)
-            if pin.floorLocation == Enum.QuestLineFloorLocation.Above then
-                GameTooltip_AddNormalLine(frame, QUESTLINE_LOCATED_ABOVE)
-            elseif pin.floorLocation == Enum.QuestLineFloorLocation.Below then
-                GameTooltip_AddNormalLine(frame, QUESTLINE_LOCATED_BELOW)
+            AddLine(lines, AVAILABLE_QUEST, HIGHLIGHT_FONT_COLOR, true)
+            if pin.floorLocation == Enum.QuestLineFloorLocation.Below then
+                AddLine(lines, QUESTLINE_LOCATED_BELOW, FLOOR_COLOR, true)
+            elseif pin.floorLocation == Enum.QuestLineFloorLocation.Above then
+                AddLine(lines, QUESTLINE_LOCATED_ABOVE, FLOOR_COLOR, true)
             end
         end
-    end
-    if not isQuestOffer and GameTooltip_CheckAddQuestTimeToTooltip then
-        GameTooltip_CheckAddQuestTimeToTooltip(frame, questID)
+        return lines
     end
 
-    local superTracked = C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID
-        and C_SuperTrack.GetSuperTrackedQuestID()
-    local focused = QuestMapFrame_GetFocusedQuestID and QuestMapFrame_GetFocusedQuestID()
-    local isWaypointQuest = questID == superTracked or questID == focused
+    -- QuestUtils_AddQuestTypeToTooltip: only dungeon-type tags get a line.
+    -- The tag tables are read directly (QuestUtils.lua, Constants.lua).
+    local tagInfo = C_QuestLog.GetQuestTagInfo(questID)
+    if tagInfo and tagInfo.tagName and not IsSecret(tagInfo.tagName) then
+        local worldQuestType = tagInfo.worldQuestType
+        local isDungeon, atlas
+        if worldQuestType ~= nil then
+            isDungeon = WORLD_QUEST_TYPE_DUNGEON_TYPES and WORLD_QUEST_TYPE_DUNGEON_TYPES[worldQuestType]
+            atlas = WORLD_QUEST_TYPE_ATLAS and WORLD_QUEST_TYPE_ATLAS[worldQuestType]
+        else
+            isDungeon = QUEST_TAG_DUNGEON_TYPES and QUEST_TAG_DUNGEON_TYPES[tagInfo.tagID]
+            atlas = QUEST_TAG_ATLAS and QUEST_TAG_ATLAS[tagInfo.tagID]
+        end
+        if isDungeon and atlas then
+            AddLine(lines, CreateAtlasMarkup(atlas, 20, 20) .. " " .. tagInfo.tagName, NORMAL_FONT_COLOR, false)
+        end
+    end
+
+    -- GameTooltip_CheckAddQuestTimeToTooltip via WorldMap_GetQuestTimeForTooltip.
+    -- QuestUtils_GetQuestTimeColor and WorldQuestsSecondsFormatter:Format only
+    -- read; neither writes Blizzard state.
+    if C_QuestLog.ShouldDisplayTimeRemaining(questID) then
+        local secondsRemaining = C_TaskQuest.GetQuestTimeLeftSeconds(questID)
+        if secondsRemaining and not IsSecret(secondsRemaining) then
+            local color = QuestUtils_GetQuestTimeColor(secondsRemaining)
+            local formattedTime = WorldQuestsSecondsFormatter:Format(secondsRemaining)
+            AddLine(lines, MAP_TOOLTIP_TIME_LEFT:format(color:WrapTextInColorCode(formattedTime)),
+                NORMAL_FONT_COLOR, true)
+        end
+    end
+
+    local focusedQuestID = QuestMapFrame and QuestMapFrame.DetailsFrame and QuestMapFrame.DetailsFrame.questID
+    local isWaypointQuest = questID == C_SuperTrack.GetSuperTrackedQuestID() or questID == focusedQuestID
     local waypointText = isWaypointQuest and C_QuestLog.GetNextWaypointText(questID)
-    if waypointText then
-        -- Do not concatenate QUEST_DASH with a possibly secret string.
-        GameTooltip_AddColoredLine(frame, waypointText, HIGHLIGHT_FONT_COLOR)
-    elseif pin.GetStyle and POIButtonUtil
-        and pin:GetStyle() == POIButtonUtil.Style.QuestInProgress then
+    if waypointText and not IsSecret(waypointText) then
+        AddLine(lines, QUEST_DASH .. waypointText, HIGHLIGHT_FONT_COLOR, true)
+    elseif POIButtonUtil and pin.style == POIButtonUtil.Style.QuestInProgress then
         local questLogIndex = C_QuestLog.GetLogIndexForQuestID(questID)
         if questLogIndex then
-            local itemDrops = GetNumQuestItemDrops and GetNumQuestItemDrops(questLogIndex) or 0
+            local itemDrops = GetNumQuestItemDrops(questLogIndex)
             if itemDrops > 0 then
                 for index = 1, itemDrops do
                     local text, _, finished = GetQuestLogItemDrop(index, questLogIndex)
-                    if text and not finished then
-                        -- Blizzard prefixes every displayed step with its
-                        -- localized quest dash, including multiple steps.
-                        frame:AddLine(QUEST_DASH .. text, 1, 1, 1, true)
+                    if text and not finished and not IsSecret(text) then
+                        AddLine(lines, QUEST_DASH .. text, HIGHLIGHT_FONT_COLOR, true)
                     end
                 end
             else
-                local objectives = GetNumQuestLeaderBoards and GetNumQuestLeaderBoards(questLogIndex) or 0
-                for index = 1, objectives do
+                for index = 1, GetNumQuestLeaderBoards(questLogIndex) do
                     local text, _, finished = GetQuestLogLeaderBoard(index, questLogIndex)
-                    if text and not finished then
-                        -- Keep the dash on every objective, not only the first.
-                        frame:AddLine(QUEST_DASH .. text, 1, 1, 1, true)
+                    if text and not finished and not IsSecret(text) then
+                        AddLine(lines, QUEST_DASH .. text, HIGHLIGHT_FONT_COLOR, true)
                     end
                 end
             end
         end
     end
+    return lines
 end
 
-local function EnsureTooltip()
-    if tooltip then
-        return tooltip
+local function HideCover()
+    if cover then
+        cover:Hide()
     end
-
-    -- Use Blizzard's own tooltip layout on an addon-owned GameTooltip. This
-    -- gives us the normal font, padding, wrapping, and content-based size
-    -- without touching the global GameTooltip instance.
-    tooltip = CreateFrame("GameTooltip", "AsItWasMapTooltip", UIParent, "GameTooltipTemplate")
-    tooltip:SetFrameStrata("TOOLTIP")
-    return tooltip
+    filledLines = nil
 end
 
-local function IsHovered(pin)
-    if not pin or not pin.IsMouseMotionFocus then
-        return false
+local function HideAll()
+    HideCover()
+    currentPin = nil
+    currentQuestID = nil
+    currentLines = nil
+end
+
+-- SetOwner clears the lines; line 1 uses the header font from the template.
+local function FillCover(frame, lines)
+    frame:SetOwner(UIParent, "ANCHOR_NONE")
+    frame:SetMinimumWidth(0)
+    for _, line in ipairs(lines) do
+        frame:AddLine(line.text, line.color.r, line.color.g, line.color.b, line.wrap)
     end
-    -- IsMouseOver() is secret-aware when the region is anchored to a secret
-    -- object. IsMouseMotionFocus() returns an ordinary boolean and is the
-    -- appropriate read-only focus query for this polling path.
-    local ok, hovered = pcall(pin.IsMouseMotionFocus, pin)
-    return ok and hovered == true
+end
+
+-- Covers Blizzard's tooltip with ours, one level above it. Both carry the same
+-- lines and ours adds the prefix, so ours is at least as large; when
+-- Blizzard's width is readable it is also used as our minimum width.
+local function ShowCover(lines)
+    local frame = EnsureCover()
+    if filledLines ~= lines then
+        FillCover(frame, lines)
+        filledLines = lines
+    end
+    local nativeWidth = GameTooltip:GetWidth()
+    local widthSecret = IsSecret(nativeWidth)
+    if not widthSecret then
+        frame:SetMinimumWidth(nativeWidth)
+    end
+    local nativeLevel = GameTooltip:GetFrameLevel()
+    if not IsSecret(nativeLevel) then
+        frame:SetFrameLevel(nativeLevel + 10)
+    end
+    frame:ClearAllPoints()
+    frame:SetPoint("TOPLEFT", GameTooltip, "TOPLEFT", 0, 0)
+    frame:Show()
+    return widthSecret
 end
 
 local function FindHoveredQuestPin(map)
@@ -187,96 +233,94 @@ local function FindHoveredQuestPin(map)
         local ok, iterator = pcall(map.EnumeratePinsByTemplate, map, template)
         if ok and iterator then
             for pin in iterator do
-                if IsHovered(pin) and GetQuestID(pin) then
-                    return pin
+                -- IsMouseMotionFocus() returns a plain boolean, while IsMouseOver()
+                -- is secret-aware when the region is anchored to a secret object.
+                -- Suppression is not checked: Blizzard can leave a pin flagged
+                -- suppressed while it is still drawn, and a hidden pin can never
+                -- have mouse focus anyway.
+                if pin.IsMouseMotionFocus then
+                    local okFocus, hovered = pcall(pin.IsMouseMotionFocus, pin)
+                    if okFocus and hovered == true and GetQuestID(pin) then
+                        return pin
+                    end
                 end
             end
         end
     end
 end
 
-local function HideTooltip()
-    if tooltip then
-        tooltip:Hide()
-    end
-    currentPin = nil
-end
-
-local function ShowForPin(pin, questID, title)
-    local frame = EnsureTooltip()
-    frame:SetOwner(pin, "ANCHOR_RIGHT", 8, 0)
-    frame:ClearLines()
-    -- Do not compare, concatenate, or otherwise inspect title. Passing it
-    -- directly to Blizzard's title setter on our own tooltip is the only
-    -- operation performed on this value.
-    pcall(AddOfficialQuestLines, frame, pin, questID, title)
-    frame:Show()
-
-    -- Blizzard already displayed its native tooltip from the pin's own hover
-    -- handler. Hide only that tooltip after we have found the pin; no Blizzard
-    -- title or FontString is read or rewritten.
-    if GameTooltip then
-        GameTooltip:Hide()
-    end
-    currentPin = pin
-end
-
 local function Update()
-    if not WorldMapFrame then
-        HideTooltip()
-        return
-    end
-
-    -- With no active filter there is nothing to decorate. Leave Blizzard's
-    -- native quest tooltip completely untouched.
-    if not AIW.IsEnabled() then
-        if tooltip and currentPin and GameTooltip then
-            GameTooltip:Show()
-        end
-        HideTooltip()
+    if not WorldMapFrame or not WorldMapFrame:IsShown() or not AIW.IsEnabled() then
+        HideAll()
         return
     end
 
     local pin = FindHoveredQuestPin(WorldMapFrame)
-    if not pin then
-        HideTooltip()
-        return
-    end
-
     local questID = GetQuestID(pin)
     if not questID then
-        HideTooltip()
-        return
-    end
-
-    local title = TITLE_CACHE[questID]
-    if not title then
-        title = ReadQuestTitle(pin, questID)
-        if title then
-            TITLE_CACHE[questID] = title
+        HideAll()
+        -- Debug only: say why the map pin Blizzard's tooltip belongs to was not
+        -- picked up as the hovered quest pin.
+        local owner = AsItWasDB and AsItWasDB.debug and GameTooltip:IsShown() and GameTooltip:GetOwner()
+        if owner and owner.pinTemplate then
+            local okFocus, focused = pcall(owner.IsMouseMotionFocus, owner)
+            Report(owner.questID, string.format("not found as hovered pin, template %s, mouse focus %s, suppressed %s",
+                tostring(owner.pinTemplate), okFocus and tostring(focused) or "error",
+                tostring(owner.IsSuppressed and owner:IsSuppressed())))
+        else
+            lastReport = nil
         end
-    end
-    if not title then
         return
     end
 
-    if pin ~= currentPin then
-        ShowForPin(pin, questID, title)
+    local prefix = AIW.MapTitlePrefix(questID)
+    if prefix == "" then
+        HideAll()
+        return
+    end
+
+    -- Rebuilt while the title is still missing, so a quest whose data loads
+    -- during the hover gets our tooltip as soon as it arrives.
+    if pin ~= currentPin or questID ~= currentQuestID or not currentLines then
+        currentPin = pin
+        currentQuestID = questID
+        currentLines = BuildLines(pin, questID, prefix)
+    end
+
+    -- Wait until Blizzard has shown its tooltip for this pin; it can arrive a
+    -- frame later, or grow when quest data loads, so this runs every tick.
+    if not currentLines then
+        Report(questID, "not shown, quest title not loaded yet")
+        HideCover()
+        return
+    end
+    if not GameTooltip:IsShown() then
+        HideCover()
+        return
+    end
+    if GameTooltip:GetOwner() ~= pin then
+        Report(questID, "not shown, Blizzard's tooltip belongs to another frame")
+        HideCover()
+        return
+    end
+
+    -- Restrictions can change between patches; an error from our own frame
+    -- must never reach the player, so ours simply stays hidden.
+    local ok, result = pcall(ShowCover, currentLines)
+    if not ok then
+        Report(questID, "not shown, error: " .. tostring(result))
+        HideCover()
+    elseif result then
+        Report(questID, "shown, Blizzard's width is secret")
     else
-        -- Keep the native tooltip suppressed if Blizzard refreshed it while
-        -- the cursor stayed on the same pin.
-        if GameTooltip then
-            GameTooltip:Hide()
-        end
+        Report(questID, "shown")
     end
 end
 
+-- Runs every frame, not throttled: Blizzard's tooltip appears first and ours
+-- covers it on the next update, so any delay here shows as a visible blink.
+-- Update returns at once while the world map is closed.
 local frame = CreateFrame("Frame")
-frame:SetScript("OnUpdate", function(_, delta)
-    elapsed = elapsed + delta
-    if elapsed < 0.05 then
-        return
-    end
-    elapsed = 0
-    Update()
-end)
+frame:SetScript("OnUpdate", Update)
+
+AIW.OnFilterChanged(HideAll)

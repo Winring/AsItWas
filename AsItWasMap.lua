@@ -9,9 +9,10 @@ local BADGE_TEXTURE = {
 local PIN_TEMPLATES = {
     "QuestPinTemplate",
     "QuestOfferPinTemplate",
-    "WorldQuestPinTemplate",
-    "QuestHubPinTemplate",
-    "BonusObjectivePinTemplate",
+    -- Re-enable one at a time after the basic quest-pin path is stable:
+    -- "WorldQuestPinTemplate",
+    -- "QuestHubPinTemplate",
+    -- "BonusObjectivePinTemplate",
 }
 local pinBadges = setmetatable({}, { __mode = "k" })
 
@@ -112,6 +113,9 @@ function AIW.ApplyPinOverlay(pin)
     if not IsQuestPin(pin) or not pin.CreateTexture then
         return
     end
+    -- Pins hidden under a QuestHub summary keep being updated: the hub tooltip
+    -- draws them with FrameCloneManager:Clone, which copies every region of the
+    -- pin and its shown state, so a stale badge would show in the hub list.
     if not IsMapAttached(pin) then
         return
     end
@@ -239,6 +243,33 @@ local function AddQuestPoint(groups, questID, x, y)
     group.ids[#group.ids + 1] = questID
 end
 
+-- Never call MapUtil.IsChildMapCached here: it stores its answer in a private
+-- Blizzard cache, and an entry written from addon code stays tainted until
+-- reload. QuestOfferDataProviderMixin:ShouldAddQuestOffer reads the same entry
+-- when the world map opens, which taints the whole map refresh and blocks
+-- SetPropagateMouseClicks on every pin in combat (confirmed by taint.log).
+-- This walk mirrors MapUtil.IsChildMap with C_Map only, and keeps its own cache.
+local childMapCache = {}
+
+local function IsChildMap(mapID, ancestorMapID)
+    local key = mapID * 100000 + ancestorMapID
+    local cached = childMapCache[key]
+    if cached ~= nil then
+        return cached
+    end
+    local result = false
+    local mapInfo = C_Map.GetMapInfo(mapID)
+    while mapInfo and mapInfo.parentMapID do
+        if mapInfo.parentMapID == ancestorMapID then
+            result = true
+            break
+        end
+        mapInfo = C_Map.GetMapInfo(mapInfo.parentMapID)
+    end
+    childMapCache[key] = result
+    return result
+end
+
 -- Same gates as QuestOfferDataProviderMixin:ShouldAddQuestOffer
 -- (Blizzard_SharedMapDataProviders/QuestOfferDataProvider.lua:79). An offer the
 -- player already has in the log draws no bang, so inProgress has to go.
@@ -249,8 +280,7 @@ local function ShouldAddOffer(info, mapID)
     if info.inProgress then
         return false
     end
-    if info.startMapID and info.startMapID ~= mapID
-        and not (MapUtil and MapUtil.IsChildMapCached and MapUtil.IsChildMapCached(info.startMapID, mapID)) then
+    if info.startMapID and info.startMapID ~= mapID and not IsChildMap(info.startMapID, mapID) then
         return false
     end
     if info.isHidden and C_Minimap.IsTrackingHiddenQuests and not C_Minimap.IsTrackingHiddenQuests() then
@@ -357,16 +387,13 @@ function AIW.RefreshMinimapOverlays()
     local yardsW, yardsH = C_Map.GetMapWorldSize(mapID)
     local radius = C_Minimap.GetViewRadius and C_Minimap.GetViewRadius()
     if not player or not yardsW or yardsW == 0 or not radius or radius <= 0 then
-    AIW.Debug("minimap: no player/world size/view radius on map %s", tostring(mapID))
     HideUnusedMinimapBadges()
     return
     end
     local half = Minimap:GetWidth() / 2
     local edge = half - (BADGE_SIZE / 2)
     local groups = CollectMinimapQuestGroups(mapID)
-    local groupCount, offMinimap = 0, 0
     for _, group in pairs(groups) do
-    groupCount = groupCount + 1
     local kind = GroupBadgeKind(group.ids)
     if kind then
     local px, py = MapPosToMinimapOffset(mapID, player, yardsW, yardsH, radius, group.x, group.y)
@@ -376,57 +403,11 @@ function AIW.RefreshMinimapOverlays()
     badge:ClearAllPoints()
     badge:SetPoint("CENTER", Minimap, "CENTER", px, py)
     badge:Show()
-    else
-    offMinimap = offMinimap + 1
     end
     end
     end
-    AIW.Debug("minimap: map %s, %d groups, %d badges, %d off minimap",
-    tostring(mapID), groupCount, minimapUsed, offMinimap)
     HideUnusedMinimapBadges()
     end
-
--- One-shot diagnostics for the owner: the summary line cannot tell a quest that
--- was never collected from one whose offset landed outside the minimap. Runs on
--- demand only, never from the OnUpdate pass.
-function AIW.DumpMinimap()
-    if not AIW.IsMinimapBadgesEnabled() then
-        AIW.Print("dump: minimap badges are disabled")
-        return
-    end
-    local mapID = C_Minimap.GetUiMapID and C_Minimap.GetUiMapID() or C_Map.GetBestMapForUnit("player")
-    if not Minimap or not mapID then
-        AIW.Print("dump: no minimap or map id")
-        return
-    end
-    local player = C_Map.GetPlayerMapPosition(mapID, "player")
-    local yardsW, yardsH = C_Map.GetMapWorldSize(mapID)
-    local radius = C_Minimap.GetViewRadius and C_Minimap.GetViewRadius()
-    if not player or not yardsW or yardsW == 0 or not radius or radius <= 0 then
-        AIW.Print(string.format("dump: map %s has no player/world size/view radius", tostring(mapID)))
-        return
-    end
-    local edge = (Minimap:GetWidth() / 2) - (BADGE_SIZE / 2)
-    local px, py = player:GetXY()
-    AIW.Print(string.format("dump: map %s player %.3f,%.3f yards %.0fx%.0f radius %.1f edge %.0f",
-        tostring(mapID), px, py, yardsW, yardsH, radius, edge))
-    local groups = CollectMinimapQuestGroups(mapID)
-    for _, group in pairs(groups) do
-        local parts = {}
-        for _, questID in ipairs(group.ids) do
-            local patch = AIW.QuestPatch(questID)
-            parts[#parts + 1] = string.format("%d[%s%s]", questID,
-                patch and AIW.FormatPatchCode(patch) or "?",
-                AIW.IsInRange(questID) and " in" or "")
-        end
-        local kind = GroupBadgeKind(group.ids)
-        local ox, oy = MapPosToMinimapOffset(mapID, player, yardsW, yardsH, radius, group.x, group.y)
-        local onMinimap = ox and (ox * ox + oy * oy) <= (edge * edge)
-        AIW.Print(string.format("dump: %.3f,%.3f kind=%s off=%.0f,%.0f %s %s",
-            group.x, group.y, tostring(kind), ox or 0, oy or 0,
-            onMinimap and "ON" or "OUT", table.concat(parts, " ")))
-    end
-end
 
 function AIW.RefreshMapOverlays()
     InvalidateMinimapQuestCache()
