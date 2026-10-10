@@ -225,27 +225,23 @@ local function ShowCover(lines)
     return widthSecret
 end
 
-local function FindHoveredQuestPin(map)
-    if not map or not map.EnumeratePinsByTemplate then
+local HANDLED_TEMPLATES = {}
+for _, template in ipairs(PIN_TEMPLATES) do
+    HANDLED_TEMPLATES[template] = true
+end
+
+-- The hovered pin is the owner Blizzard's pin handler gave GameTooltip
+-- (QuestPinMixin:OnMouseEnter, TaskPOI_OnEnter). Reading the owner replaces
+-- enumerating every pin each frame, and nothing runs while nothing is hovered.
+-- Suppression is not checked: Blizzard can leave a pin flagged suppressed
+-- while it is still drawn and hovered.
+local function GetHoveredQuestPin()
+    if not GameTooltip:IsShown() then
         return nil
     end
-    for _, template in ipairs(PIN_TEMPLATES) do
-        local ok, iterator = pcall(map.EnumeratePinsByTemplate, map, template)
-        if ok and iterator then
-            for pin in iterator do
-                -- IsMouseMotionFocus() returns a plain boolean, while IsMouseOver()
-                -- is secret-aware when the region is anchored to a secret object.
-                -- Suppression is not checked: Blizzard can leave a pin flagged
-                -- suppressed while it is still drawn, and a hidden pin can never
-                -- have mouse focus anyway.
-                if pin.IsMouseMotionFocus then
-                    local okFocus, hovered = pcall(pin.IsMouseMotionFocus, pin)
-                    if okFocus and hovered == true and GetQuestID(pin) then
-                        return pin
-                    end
-                end
-            end
-        end
+    local owner = GameTooltip:GetOwner()
+    if owner and HANDLED_TEMPLATES[owner.pinTemplate] then
+        return owner
     end
 end
 
@@ -255,51 +251,24 @@ local function Update()
         return
     end
 
-    local pin = FindHoveredQuestPin(WorldMapFrame)
+    local pin = GetHoveredQuestPin()
     local questID = GetQuestID(pin)
     if not questID then
         HideAll()
-        -- Debug only: say why the map pin Blizzard's tooltip belongs to was not
-        -- picked up as the hovered quest pin.
-        local owner = AsItWasDB and AsItWasDB.debug and GameTooltip:IsShown() and GameTooltip:GetOwner()
-        if owner and owner.pinTemplate then
-            local okFocus, focused = pcall(owner.IsMouseMotionFocus, owner)
-            Report(owner.questID, string.format("not found as hovered pin, template %s, mouse focus %s, suppressed %s",
-                tostring(owner.pinTemplate), okFocus and tostring(focused) or "error",
-                tostring(owner.IsSuppressed and owner:IsSuppressed())))
-        else
-            lastReport = nil
-        end
+        lastReport = nil
         return
     end
 
-    local prefix = AIW.MapTitlePrefix(questID)
-    if prefix == "" then
-        HideAll()
-        return
-    end
-
-    -- Rebuilt while the title is still missing, so a quest whose data loads
-    -- during the hover gets our tooltip as soon as it arrives.
+    -- Built once per hovered pin; rebuilt while the title is still missing, so
+    -- a quest whose data loads during the hover gets ours as soon as it arrives.
     if pin ~= currentPin or questID ~= currentQuestID or not currentLines then
         currentPin = pin
         currentQuestID = questID
-        currentLines = BuildLines(pin, questID, prefix)
+        currentLines = BuildLines(pin, questID, AIW.MapTitlePrefix(questID))
     end
 
-    -- Wait until Blizzard has shown its tooltip for this pin; it can arrive a
-    -- frame later, or grow when quest data loads, so this runs every tick.
     if not currentLines then
         Report(questID, "not shown, quest title not loaded yet")
-        HideCover()
-        return
-    end
-    if not GameTooltip:IsShown() then
-        HideCover()
-        return
-    end
-    if GameTooltip:GetOwner() ~= pin then
-        Report(questID, "not shown, Blizzard's tooltip belongs to another frame")
         HideCover()
         return
     end
@@ -319,7 +288,7 @@ end
 
 -- Runs every frame, not throttled: Blizzard's tooltip appears first and ours
 -- covers it on the next update, so any delay here shows as a visible blink.
--- Update returns at once while the world map is closed.
+-- Update returns at once while the world map is closed or nothing is hovered.
 local frame = CreateFrame("Frame")
 frame:SetScript("OnUpdate", Update)
 
