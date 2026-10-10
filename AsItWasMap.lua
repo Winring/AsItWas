@@ -58,8 +58,13 @@ local function EnsureBadge(pin)
     return badge
 end
 
+-- One list reused for every pin: the map pass runs every 0.1s over every quest
+-- pin, and a fresh table per pin was pure garbage. Callers use it immediately.
+local relatedIDs = {}
+
 local function RelatedQuestIDs(pin)
-    local ids = {}
+    local ids = relatedIDs
+    wipe(ids)
     if pin.GetQuestID then
         local questID = pin:GetQuestID()
         if questID and questID > 0 then
@@ -155,9 +160,7 @@ local function RefreshCanvas(map)
         return
     end
     for _, template in ipairs(PIN_TEMPLATES) do
-        local ok, iter = pcall(function()
-            return map:EnumeratePinsByTemplate(template)
-        end)
+        local ok, iter = pcall(map.EnumeratePinsByTemplate, map, template)
         if ok and iter then
             for pin in iter do
                 AIW.ApplyPinOverlay(pin)
@@ -450,16 +453,59 @@ local minimapEvents = {
     "QUESTLINE_UPDATE",
     "PLAYER_ENTERING_WORLD",
     "CVAR_UPDATE",
+    -- Accepting, completing or turning in a quest changes the turn-in and offer
+    -- markers without any of the events above, so the cached groups went stale.
+    "QUEST_LOG_UPDATE",
+    "QUEST_ACCEPTED",
+    "QUEST_TURNED_IN",
+    "QUEST_REMOVED",
 }
+
+local QUEST_CACHE_EVENTS = {
+    QUESTLINE_UPDATE = true,
+    QUEST_POI_UPDATE = true,
+    PLAYER_ENTERING_WORLD = true,
+    QUEST_LOG_UPDATE = true,
+    QUEST_ACCEPTED = true,
+    QUEST_TURNED_IN = true,
+    QUEST_REMOVED = true,
+}
+
+-- Events only mark the minimap dirty; the next tick redraws once. Quest events
+-- can arrive in bursts, and this coalesces them into a single rebuild.
+local minimapDirty = true
+local lastPlayerX, lastPlayerY, lastRadius, lastFacing
 
 local function OnMinimapEvent(_, event, cvar)
     if event == "CVAR_UPDATE" and cvar ~= "rotateMinimap" then
         return
     end
-    if event == "QUESTLINE_UPDATE" or event == "QUEST_POI_UPDATE" or event == "PLAYER_ENTERING_WORLD" then
+    if QUEST_CACHE_EVENTS[event] then
         InvalidateMinimapQuestCache()
     end
-    AIW.RefreshMinimapOverlays()
+    minimapDirty = true
+end
+
+local function IsSecret(value)
+    return issecretvalue and issecretvalue(value)
+end
+
+-- Redraw only when the player moved, the zoom changed or, with a rotating
+-- minimap, the facing changed. UnitPosition returns plain numbers, while
+-- C_Map.GetPlayerMapPosition allocates a vector on every call; redrawing 20
+-- times a second while standing still produced constant garbage.
+local function MinimapViewChanged()
+    local x, y = UnitPosition("player")
+    local radius = C_Minimap.GetViewRadius and C_Minimap.GetViewRadius()
+    local facing = MinimapRotateEnabled() and GetPlayerFacing() or 0
+    if IsSecret(x) or IsSecret(y) or IsSecret(radius) or IsSecret(facing) then
+        return true
+    end
+    if x == nil or x ~= lastPlayerX or y ~= lastPlayerY or radius ~= lastRadius or facing ~= lastFacing then
+        lastPlayerX, lastPlayerY, lastRadius, lastFacing = x, y, radius, facing
+        return true
+    end
+    return false
 end
 
 local function OnMinimapUpdate(self, elapsed)
@@ -469,6 +515,10 @@ local function OnMinimapUpdate(self, elapsed)
         return
     end
     self.elapsed = 0
+    if not MinimapViewChanged() and not minimapDirty then
+        return
+    end
+    minimapDirty = false
     AIW.RefreshMinimapOverlays()
 end
 
