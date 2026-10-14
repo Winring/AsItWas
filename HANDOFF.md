@@ -95,7 +95,7 @@ network. **Do not fetch wow-ui-source file-by-file over HTTP.**
 ### Versions — re-verify at the start of every session
 
 * Local UI clone currently at **12.1.0.69814** (commit `4e3cbb8`, 12 September 2026, branch `live`,
-  `version.txt`). `.toc` is `## Interface: 120100`. Five-digit
+  `version.txt`). `.toc` is `## Interface: 120105`. Five-digit
   scheme: major, two digits minor, two digits patch. Wiki `LatestPatchInfo` can lag.
 * Last quest table snapshot: ATT revision `00227e34db372de7b2940c86b2579bd6f468fcef`.
   Interface follows the client the owner plays; the table follows the ATT checkout used for the build.

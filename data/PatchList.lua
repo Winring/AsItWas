@@ -120,5 +120,5 @@ AsItWasPatches = {
     {patch="12.0.5", code=120005, build="12.0.5.67823"},
     {patch="12.0.7", code=120007, build="12.0.7.68974"},
     {patch="12.1.0", code=120100, build="12.1.0.69814"},
-    {patch="12.1.5", code=120105, build="supplementary"},
+    {patch="12.1.5", code=120105, build="12.1.5.70391"},
 }

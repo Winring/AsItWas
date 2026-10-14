@@ -19,8 +19,17 @@ Then from the As It Was project directory run:
 tools\att_quest_database\run_windows.bat C:\path\to\AllTheThings
 ```
 
-Or use `download_and_run_windows.bat` to clone/update the latest ATT Git
-repository automatically and run the same process.
+Or use `download_and_run_windows.bat` to update both sources automatically:
+
+1. Wago's historical `X.Y.Z` snapshots are downloaded/cached and converted to
+   `data/att_quest_database/wago_quest_patches.json`.
+2. The latest ATT Git repository is cloned or fast-forwarded and its C# parser
+   generates the ATT snapshot.
+3. The final addon table merges both sources; ATT wins on every quest ID.
+
+The Wago step walks every available patch, so it also handles several skipped
+patches between two runs. If Wago is temporarily unavailable, the previous
+Wago backup remains usable and the ATT build continues.
 
 To measure how many processed ATT quest objects have no `awp`, run after the
 database build:
@@ -40,6 +49,8 @@ It also writes:
 - `data\QuestPatches.lua`
 - `data\quest_patches_att.json`
 - `data\quest_patches_att.csv`
+
+The Wago-derived backup is written to `data\att_quest_database\wago_quest_patches.json`.
 
 ATT's direct intermediate output is `db\Standard\QuestPatches.att.json` and
 contains every processed quest ID, including IDs whose processed object graph

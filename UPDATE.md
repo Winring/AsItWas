@@ -1,21 +1,31 @@
 # Updating the quest-to-patch table
 
-The authoritative source is ATT's own C# parser. A narrow BfA+ fallback is kept
-for IDs that ATT does not expose at all: `data/att_quest_database/legacy_wago_fallback.json`.
+The authoritative source is ATT's own C# parser. A refreshed BfA+ Wago backup is
+kept for IDs that ATT does not expose at all:
+`data/att_quest_database/wago_quest_patches.json`. The committed legacy Wago
+file remains the offline safety net if no refreshed backup exists.
 It never overrides an ATT record. Do not use the former Wago, Wiki, or hybrid
 builders to replace ATT data.
 
 ## Build
 
-On Windows, with a full ATT checkout and MSBuild installed:
+On Windows, with Git, Python 3, curl, and MSBuild installed, use the combined
+downloader:
 
 ```bat
-tools\att_quest_database\run_windows.bat C:\path\to\AllTheThings
+tools\att_quest_database\download_and_run_windows.bat
 ```
 
-The runner installs the small exporter into ATT's parser, builds it, runs ATT's
-normal processing, and writes the processed `questID -> awp` result. The parser
-is the source of truth; Python only packages its output.
+It updates Wago's full historical snapshot set and ATT independently. The Wago
+step uses the latest build for every available `X.Y.Z`, not just the newest
+patch, so skipped releases are handled automatically. The ATT step clones or
+fast-forwards `tools\att_quest_database\att-source` and runs ATT's C# parser.
+
+The final merge is ATT-first: Wago only fills quest IDs for which ATT has no
+effective `awp`. If Wago is unavailable, its previous backup is retained.
+
+The ATT runner also supports both parser layouts currently used by ATT:
+`.contrib\src\parser` and `.contrib\Source Code\Parser`.
 
 The generated addon file is:
 
@@ -40,8 +50,9 @@ intermediate export including IDs without `awp`.
 - JSON and CSV retain every distinct value.
 - Lua uses the latest value for addon compatibility.
 - IDs without an effective ATT `awp` are omitted from the addon Lua output.
-- BfA+ IDs absent from ATT may be added from `legacy_wago_fallback.json`; these
-  are marked `legacy_wago_fallback` and remain lower priority than ATT.
+- BfA+ IDs absent from ATT may be added from the refreshed Wago backup, or from
+  `legacy_wago_fallback.json` when Wago is unavailable; these are marked
+  `wago_fallback` and remain lower priority than ATT.
 
 ## Auditing
 
