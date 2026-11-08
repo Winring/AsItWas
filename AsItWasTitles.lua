@@ -312,6 +312,18 @@ local TRACKER_FRAMES = {
 
 local wrappedTrackerFrames = {}
 
+local function IsSecret(value)
+    return issecretvalue and issecretvalue(value)
+end
+
+-- Extra header height the prefix caused, per block. Blizzard measures the
+-- header in SetHeader and adds that height to block.height and to the module's
+-- contentsHeight inside UpdateSingle, before any post-hook runs, so a prefix
+-- that wraps the title to another line is never counted. A delta stays valid
+-- while the header keeps our text, including cached blocks Blizzard lays out
+-- again without calling SetHeader.
+local headerDelta = setmetatable({}, { __mode = "k" })
+
 local function DecorateTrackerBlock(module, questID, title)
     if not questID or not module or not module.GetExistingBlock then
         return
@@ -322,17 +334,53 @@ local function DecorateTrackerBlock(module, questID, title)
     end
     local current = block.HeaderText:GetText()
     local marked = AIW.MarkTitle(questID, title or current)
-    if not marked or marked == current then
+    if not marked then
         return
     end
-    -- Objective lines anchor to HeaderText (ObjectiveTrackerBlock.lua:192), so
-    -- they follow on their own. Only the block height was measured before the
-    -- prefix went in, so carry the difference over.
+    if marked == current then
+        -- Blizzard's own title is showing and needs no prefix (filter off).
+        if title and current == title then
+            headerDelta[block] = nil
+        end
+        return
+    end
     local before = block.HeaderText:GetHeight()
     block.HeaderText:SetText(marked)
-    local delta = block.HeaderText:GetHeight() - before
-    if delta ~= 0 then
-        block:SetHeight(block:GetHeight() + delta)
+    local after = block.HeaderText:GetHeight()
+    if IsSecret(before) or IsSecret(after) then
+        headerDelta[block] = nil
+        return
+    end
+    headerDelta[block] = after - before
+end
+
+-- Runs after ObjectiveTrackerModuleMixin:UpdateHeight, which closes every
+-- layout pass. Blocks are anchored below each other (AnchorBlock) and modules
+-- below each other (ObjectiveTrackerContainer), so resizing the frames moves
+-- everything that follows; only frame sizes change, no Blizzard field is
+-- written. Each size is derived from Blizzard's own value, so repeated calls
+-- do not add up.
+local MAX_TRACKER_BLOCKS = 200
+
+local function ApplyTrackerHeaderDeltas(module)
+    local extra = 0
+    local block = module.firstBlock
+    local count = 0
+    while block and count < MAX_TRACKER_BLOCKS do
+        count = count + 1
+        local delta = headerDelta[block]
+        local height = block.height
+        if delta and delta ~= 0 and type(height) == "number" and not IsSecret(height) then
+            block:SetHeight(height + delta)
+            extra = extra + delta
+        end
+        block = block.nextBlock
+    end
+    if extra ~= 0 then
+        local moduleHeight = module:GetHeight()
+        if not IsSecret(moduleHeight) then
+            module:SetHeight(moduleHeight + extra)
+        end
     end
 end
 
@@ -359,6 +407,9 @@ local function WrapTracker()
                         DecorateTrackerBlock(self, block.id, block.taskName)
                     end
                 end)
+            end
+            if frame.UpdateHeight then
+                hooksecurefunc(frame, "UpdateHeight", ApplyTrackerHeaderDeltas)
             end
         end
     end
