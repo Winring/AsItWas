@@ -91,8 +91,10 @@ local function BuildLines(pin, questID, prefix)
         return nil
     end
 
+    -- Quest offer pins title through GameTooltip_SetTitle, which wraps; quest
+    -- pins use SetText, which does not.
     local lines = {}
-    AddLine(lines, prefix .. " " .. title, NORMAL_FONT_COLOR, false)
+    AddLine(lines, prefix .. " " .. title, NORMAL_FONT_COLOR, isOffer)
 
     if isOffer then
         if pin.isCombatAllyQuest or C_QuestLog.GetQuestType(questID) == Enum.QuestTag.CombatAlly then

@@ -79,20 +79,72 @@ local function WrapDialogue()
     end
 end
 
+local function IsSecret(value)
+    return issecretvalue and issecretvalue(value)
+end
+
+-- Blizzard sizes each quest log row from the title without our prefix and lays
+-- the list out (QuestLogQuests_Update ends with Contents:Layout) before this
+-- addon sees the row. A prefix that wraps the title makes the row taller, so
+-- every frame the layout placed below it moves down by that amount. Only frame
+-- sizes and anchor offsets change; the layout is not run again, and it reads
+-- the grown row heights if Blizzard runs it later.
+local function MoveQuestLogRowsDown(contents, grown)
+    local total = 0
+    for _, row in ipairs(grown) do
+        total = total + row.delta
+    end
+    for _, child in ipairs({ contents:GetChildren() }) do
+        if child:GetNumPoints() == 1 then
+            local point, relativeTo, relativePoint, x, y = child:GetPoint(1)
+            if relativeTo == contents and type(y) == "number" and not IsSecret(y) then
+                local shift = 0
+                for _, row in ipairs(grown) do
+                    if row.top > y then
+                        shift = shift + row.delta
+                    end
+                end
+                if shift ~= 0 then
+                    child:SetPoint(point, relativeTo, relativePoint, x, y - shift)
+                end
+            end
+        end
+    end
+    local height = contents:GetHeight()
+    if not IsSecret(height) then
+        contents:SetHeight(height + total)
+    end
+end
+
 local questLogHooked = false
 local function PrefixQuestLogRows()
-    local pool = QuestScrollFrame and QuestScrollFrame.titleFramePool
+    local scroll = QuestScrollFrame
+    local pool = scroll and scroll.titleFramePool
     if not pool or not pool.EnumerateActive then
         return
     end
+    local grown = {}
     for button in pool:EnumerateActive() do
         if button.questID and button.Text then
             local current = button.Text:GetText()
             local marked = AIW.MarkTitle(button.questID, current)
             if marked ~= current then
+                local before = button.Text:GetHeight()
                 button.Text:SetText(marked)
+                local after = button.Text:GetHeight()
+                local _, _, _, _, top = button:GetPoint(1)
+                local rowHeight = button:GetHeight()
+                if type(top) == "number" and not IsSecret(top)
+                    and not IsSecret(before) and not IsSecret(after) and not IsSecret(rowHeight)
+                    and after ~= before then
+                    button:SetHeight(rowHeight + after - before)
+                    grown[#grown + 1] = { top = top, delta = after - before }
+                end
             end
         end
+    end
+    if #grown > 0 and scroll.Contents then
+        MoveQuestLogRowsDown(scroll.Contents, grown)
     end
 end
 
@@ -296,10 +348,6 @@ local TRACKER_FRAMES = {
 }
 
 local wrappedTrackerFrames = {}
-
-local function IsSecret(value)
-    return issecretvalue and issecretvalue(value)
-end
 
 -- Extra header height the prefix caused, per block. Blizzard measures the
 -- header in SetHeader and adds that height to block.height and to the module's
