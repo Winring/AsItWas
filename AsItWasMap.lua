@@ -273,11 +273,29 @@ local function IsChildMap(mapID, ancestorMapID)
     return result
 end
 
+-- Classifications that get an offer pin (questOfferPinData in
+-- QuestOfferDataProvider.lua). InitializeCommonQuestOfferData drops every other
+-- offer, so task quests such as bonus objectives and progress trackers from
+-- C_TaskQuest.GetQuestsOnMap never draw a bang and must not get a badge.
+local OFFER_CLASSIFICATIONS = {}
+if Enum and Enum.QuestClassification then
+    for _, key in ipairs({ "Normal", "Questline", "Recurring", "Meta", "Calling", "Campaign", "Legendary", "Important" }) do
+        local value = Enum.QuestClassification[key]
+        if value ~= nil then
+            OFFER_CLASSIFICATIONS[value] = true
+        end
+    end
+end
+
 -- Same gates as QuestOfferDataProviderMixin:ShouldAddQuestOffer
 -- (Blizzard_SharedMapDataProviders/QuestOfferDataProvider.lua:79). An offer the
 -- player already has in the log draws no bang, so inProgress has to go.
 local function ShouldAddOffer(info, mapID)
     if not info or not info.questID then
+        return false
+    end
+    if C_QuestInfoSystem and C_QuestInfoSystem.GetQuestClassification
+        and not OFFER_CLASSIFICATIONS[C_QuestInfoSystem.GetQuestClassification(info.questID)] then
         return false
     end
     if info.inProgress then
@@ -370,6 +388,24 @@ local function GroupBadgeKind(ids)
     return BadgeKindForQuestIDs(ids)
 end
 
+-- /aiw debug: the quest IDs behind every unknown minimap badge, one chat line
+-- per map, repeated only when the list changes because the pass reruns on
+-- every movement.
+local lastMinimapReport
+
+local function ReportMinimapUnknown(mapID, groups)
+    if #groups == 0 then
+        lastMinimapReport = nil
+        return
+    end
+    table.sort(groups)
+    local message = string.format("minimap ? badges, map %s: quest %s", tostring(mapID), table.concat(groups, " | "))
+    if message ~= lastMinimapReport then
+        lastMinimapReport = message
+        AIW.Print(message)
+    end
+end
+
 function AIW.RefreshMinimapOverlays()
     if not AIW.IsMinimapBadgesEnabled() then
         minimapUsed = 0
@@ -396,8 +432,12 @@ function AIW.RefreshMinimapOverlays()
     local half = Minimap:GetWidth() / 2
     local edge = half - (BADGE_SIZE / 2)
     local groups = CollectMinimapQuestGroups(mapID)
+    local debugUnknown = AsItWasDB and AsItWasDB.debug and {}
     for _, group in pairs(groups) do
     local kind = GroupBadgeKind(group.ids)
+    if kind == "unknown" and debugUnknown then
+        debugUnknown[#debugUnknown + 1] = table.concat(group.ids, ",")
+    end
     if kind then
     local px, py = MapPosToMinimapOffset(mapID, player, yardsW, yardsH, radius, group.x, group.y)
     if px and (px * px + py * py) <= (edge * edge) then
@@ -408,6 +448,9 @@ function AIW.RefreshMinimapOverlays()
     badge:Show()
     end
     end
+    end
+    if debugUnknown then
+        ReportMinimapUnknown(mapID, debugUnknown)
     end
     HideUnusedMinimapBadges()
     end
