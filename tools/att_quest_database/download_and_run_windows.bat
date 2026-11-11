@@ -15,8 +15,12 @@ if not exist "%ATT%\.git" (
   git clone https://github.com/ATTWoWAddon/AllTheThings.git "%ATT%"
   if errorlevel 1 exit /b %errorlevel%
 ) else (
-  echo Updating ATT Git repository...
-  git -C "%ATT%" pull --ff-only
+  echo Resetting local ATT checkout...
+  git -C "%ATT%" fetch --prune origin master
+  if errorlevel 1 exit /b %errorlevel%
+  git -C "%ATT%" reset --hard FETCH_HEAD
+  if errorlevel 1 exit /b %errorlevel%
+  git -C "%ATT%" clean -fd
   if errorlevel 1 exit /b %errorlevel%
 )
 
