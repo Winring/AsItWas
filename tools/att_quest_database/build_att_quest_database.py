@@ -92,11 +92,13 @@ def build_parser(parser_dir: Path, no_build: bool, force_build: bool = False) ->
             "ATT Parser.exe is not present and neither msbuild nor xbuild is installed. "
             "Build Parser.csproj with MSBuild (Release|x64), then rerun this script."
         )
-    subprocess.run(
-        [builder, "Parser.csproj", "/p:Configuration=Release", "/p:Platform=x64"],
-        cwd=parser_dir,
-        check=True,
-    )
+    build_command = [builder, "Parser.csproj"]
+    # A clean ATT checkout has no obj/project.assets.json yet. MSBuild can
+    # restore the parser's NuGet packages before building it; xbuild cannot.
+    if Path(builder).name.lower() in {"msbuild", "msbuild.exe"}:
+        build_command.append("/restore")
+    build_command.extend(["/p:Configuration=Release", "/p:Platform=x64"])
+    subprocess.run(build_command, cwd=parser_dir, check=True)
     if not exe.exists():
         raise SystemExit(f"Build completed but parser executable is missing: {exe}")
     return exe
