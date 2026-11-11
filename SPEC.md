@@ -48,9 +48,9 @@ Uses the numeric patch codes emitted by ATT. Dropdown/HUD identity tokens are ab
 - **BfA (whole)** → min 8.0.1, max 8.3.7 (all BfA, not Legion, unless Include older is on)
 - **BfA 8.0.1** → min = max = 8.0.1
 - Same pattern for SL / DF / TWW / MN
-- Patch rows are shown for every patch code present in `PatchList.lua`, including
-  the ATT-provided Classic-through-Legion codes. The database now provides those
-  exact values, so they are no longer collapsed into a single Legion baseline.
+- Patch rows are shown for every patch code present in `PatchList.lua`, which the
+  database builder generates from the codes in `QuestPatches.lua`, Classic through
+  the current patch. A patch with no quests gets no row.
 
 **First-run** (once per character): same dropdown (no Off row) + Include older + Confirm. Close / Esc / No filter = Off, never ask again on that character. Later changes go to Options.
 

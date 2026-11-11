@@ -8,7 +8,6 @@ local hooked = {
     dialogueOptions = false,
     gossip = false,
     greeting = false,
-    tracker = false,
 }
 
 local function DecorateDialogueTitle(dialogue)
@@ -285,24 +284,10 @@ local function WrapGreeting()
     hooksecurefunc("QuestFrameGreetingPanel_OnShow", PrefixGreetingButtons)
 end
 
-local function TrackerQuestID(block)
-    if not block or type(block.id) ~= "number" then
-        return nil
-    end
-    local module = block.parentModule
-    if not module then
-        return nil
-    end
-    if module.GetTag and module:GetTag() == "quest" then
-        return block.id
-    end
-    -- Bonus and world-quest modules use quest IDs as block.id.
-    if module.showWorldQuests ~= nil then
-        return block.id
-    end
-    return nil
-end
-
+-- The quest headers of all four modules are set in UpdateSingle
+-- (QuestObjectiveTrackerMixin, inherited by the campaign module) or in
+-- SetUpQuestBlock (BonusObjectiveTrackerMixin, inherited by the world quest
+-- module); the other SetHeader callers are not quests.
 local TRACKER_FRAMES = {
     "QuestObjectiveTracker",
     "CampaignQuestObjectiveTracker",
@@ -384,9 +369,8 @@ local function ApplyTrackerHeaderDeltas(module)
     end
 end
 
--- XML mixin= copies methods onto the frame. hooksecurefunc on
--- ObjectiveTrackerBlockMixin.SetHeader does not run on those copies.
--- Hook the live module frames instead (QuestObjectiveTracker.lua:280).
+-- XML mixin= copies methods onto the frame, so the live module frames are
+-- hooked, not the mixins.
 local function WrapTracker()
     for _, name in ipairs(TRACKER_FRAMES) do
         local frame = _G[name]
@@ -413,20 +397,6 @@ local function WrapTracker()
             end
         end
     end
-    if hooked.tracker or not ObjectiveTrackerBlockMixin or not ObjectiveTrackerBlockMixin.SetHeader then
-        return
-    end
-    hooked.tracker = true
-    hooksecurefunc(ObjectiveTrackerBlockMixin, "SetHeader", function(self, text)
-        local questID = TrackerQuestID(self)
-        if not questID or not self.HeaderText then
-            return
-        end
-        local marked = AIW.MarkTitle(questID, text)
-        if marked ~= text then
-            DecorateTrackerBlock(self.parentModule, questID, marked)
-        end
-    end)
 end
 
 WrapQuestLog()

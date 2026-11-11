@@ -16,15 +16,6 @@ local _, AIW = ...
 -- or Blizzard's geometry: ours is a GameTooltip widget, so the client sizes and
 -- lays it out, and a secret width or level is simply not used.
 
-local PIN_TEMPLATES = {
-    "QuestPinTemplate",
-    "QuestOfferPinTemplate",
-    -- Re-enable one at a time after the basic quest-pin path is stable:
-    -- "WorldQuestPinTemplate",
-    -- "QuestHubPinTemplate",
-    -- "BonusObjectivePinTemplate",
-}
-
 local FLOOR_COLOR = { r = 0.5, g = 0.5, b = 0.5 }
 
 local cover
@@ -225,8 +216,9 @@ local function ShowCover(lines)
     return widthSecret
 end
 
+-- The same pin templates the map badges use (AsItWasMap.lua).
 local HANDLED_TEMPLATES = {}
-for _, template in ipairs(PIN_TEMPLATES) do
+for _, template in ipairs(AIW.QUEST_PIN_TEMPLATES) do
     HANDLED_TEMPLATES[template] = true
 end
 

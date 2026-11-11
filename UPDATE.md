@@ -27,10 +27,11 @@ effective `awp`. If Wago is unavailable, its previous backup is retained.
 The ATT runner also supports both parser layouts currently used by ATT:
 `.contrib\src\parser` and `.contrib\Source Code\Parser`.
 
-The generated addon file is:
+The generated addon files are:
 
 ```text
-data/QuestPatches.lua
+data/QuestPatches.lua   the only quest database (questID -> patch code)
+data/PatchList.lua      the dropdown patch list, every code that occurs in QuestPatches.lua
 ```
 
 The current validated snapshot is also kept in:

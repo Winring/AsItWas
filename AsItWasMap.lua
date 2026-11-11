@@ -6,6 +6,8 @@ local BADGE_TEXTURE = {
     older = "Interface\\AddOns\\AsItWas\\textures\\older.png",
     unknown = "Interface\\Icons\\INV_Misc_QuestionMark",
 }
+-- World map pin templates the addon handles, shared with AsItWasMapTooltip.lua
+-- (loaded later by the toc).
 local PIN_TEMPLATES = {
     "QuestPinTemplate",
     "QuestOfferPinTemplate",
@@ -14,36 +16,21 @@ local PIN_TEMPLATES = {
     -- "QuestHubPinTemplate",
     -- "BonusObjectivePinTemplate",
 }
+AIW.QUEST_PIN_TEMPLATES = PIN_TEMPLATES
+
+local QUEST_PIN = {}
+for _, template in ipairs(PIN_TEMPLATES) do
+    QUEST_PIN[template] = true
+end
+
 local pinBadges = setmetatable({}, { __mode = "k" })
 
 local function IsQuestPin(pin)
-    if not pin then
-        return false
-    end
-    local template = pin.pinTemplate
-    for _, questTemplate in ipairs(PIN_TEMPLATES) do
-        if template == questTemplate then
-            return true
-        end
-    end
-    return false
+    return pin and QUEST_PIN[pin.pinTemplate] or false
 end
 
-local function IsMapAttached(frame)
-    if not frame then
-        return false
-    end
-    if frame.GetMap and frame:GetMap() then
-        return true
-    end
-    local parent = frame:GetParent()
-    while parent do
-        if parent == Minimap or parent == MinimapCluster then
-            return true
-        end
-        parent = parent:GetParent()
-    end
-    return false
+local function IsMapAttached(pin)
+    return pin.GetMap and pin:GetMap() ~= nil
 end
 
 local function EnsureBadge(pin)
@@ -62,25 +49,14 @@ end
 -- pin, and a fresh table per pin was pure garbage. Callers use it immediately.
 local relatedIDs = {}
 
+-- Quest pins carry one quest: QuestPinMixin:GetQuestID, or questID copied
+-- from the offer data onto QuestOfferPinMixin.
 local function RelatedQuestIDs(pin)
     local ids = relatedIDs
     wipe(ids)
-    if pin.GetQuestID then
-        local questID = pin:GetQuestID()
-        if questID and questID > 0 then
-            ids[#ids + 1] = questID
-        end
-    end
-    if pin.questID and pin.questID > 0 then
-        ids[#ids + 1] = pin.questID
-    end
-    if pin.GetRelatedQuests then
-        local related = pin:GetRelatedQuests()
-        if related then
-            for questID in pairs(related) do
-                ids[#ids + 1] = questID
-            end
-        end
+    local questID = pin.GetQuestID and pin:GetQuestID() or pin.questID
+    if questID and questID > 0 then
+        ids[1] = questID
     end
     return ids
 end
@@ -457,11 +433,7 @@ function AIW.RefreshMinimapOverlays()
 
 function AIW.RefreshMapOverlays()
     InvalidateMinimapQuestCache()
-    if securecallfunction then
-        securecallfunction(RefreshCanvas, WorldMapFrame)
-    else
-        RefreshCanvas(WorldMapFrame)
-    end
+    RefreshCanvas(WorldMapFrame)
     AIW.RefreshMinimapOverlays()
 end
 
@@ -481,11 +453,7 @@ mapOverlayFrame:SetScript("OnUpdate", function(self, elapsed)
         return
     end
     self.elapsed = 0
-    if securecallfunction then
-        securecallfunction(RefreshCanvas, WorldMapFrame)
-    else
-        RefreshCanvas(WorldMapFrame)
-    end
+    RefreshCanvas(WorldMapFrame)
 end)
 
 local minimapFrame = CreateFrame("Frame")

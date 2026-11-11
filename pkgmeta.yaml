@@ -9,8 +9,7 @@ ignore:
     - HANDOFF.md
     - SPEC.md
     - UPDATE.md
-    - data/quest_patches.csv
-    - data/quest_patches_meta.json
-    - data/quest_expansions.csv
+    - data/quest_patches_att.csv
+    - data/quest_patches_att.json
     - data/att_quest_database
     - Reported lua errors.txt

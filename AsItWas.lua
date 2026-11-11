@@ -3,24 +3,9 @@ AsItWas = AIW
 
 AsItWasDB = AsItWasDB or {}
 
-local EXPANSION_NAME = {
-    [1] = "Classic",
-    [2] = "The Burning Crusade",
-    [3] = "Wrath of the Lich King",
-    [4] = "Cataclysm",
-    [5] = "Mists of Pandaria",
-    [6] = "Warlords of Draenor",
-    [7] = "Legion",
-    [8] = "Battle for Azeroth",
-    [9] = "Shadowlands",
-    [10] = "Dragonflight",
-    [11] = "The War Within",
-    [12] = "Midnight",
-}
-
 -- Wiki-style tokens ({{bfa-inline}}, {{mn-inline}}, …). Same string
--- everywhere: HUD, titles, dropdown, future chip files. Full names stay
--- in EXPANSION_NAME only and are never mixed into those labels.
+-- everywhere: HUD, titles, dropdown, chip files. Full expansion names are
+-- never mixed into those labels.
 local EXPANSION_SHORT = {
     [1] = "Classic",
     [2] = "TBC",
@@ -105,10 +90,6 @@ local defaults = {
     showMinimapBadges = true,
     doNotAbandonOlder = true,
 }
-
-function AIW.Defaults()
-    return defaults
-end
 
 function AIW.EnsureDB()
     if type(AsItWasDB) ~= "table" then
@@ -199,12 +180,24 @@ function AIW.GetFilterOptions()
 end
 
 function AIW.GetFilterById(id)
-    for _, opt in ipairs(AIW.GetFilterOptions()) do
+    local options = AIW.GetFilterOptions()
+    for _, opt in ipairs(options) do
         if opt.id == id then
             return opt
         end
     end
-    return AIW.GetFilterOptions()[1]
+    -- A saved patch that is no longer listed (the list follows the quest data)
+    -- falls back to its whole expansion instead of silently turning the
+    -- addon off.
+    local major = type(id) == "string" and string.match(id, "^(%d+)%.")
+    if major then
+        for _, opt in ipairs(options) do
+            if opt.kind == "expansion" and opt.id == major then
+                return opt
+            end
+        end
+    end
+    return options[1]
 end
 
 function AIW.GetActiveFilter()
@@ -236,35 +229,22 @@ function AIW.QuestPatch(questID)
     return AsItWasQuestPatch and AsItWasQuestPatch[questID]
 end
 
-function AIW.QuestExpansion(questID)
-    if not questID then
-        return nil
-    end
-    return AsItWasQuestExpansion and AsItWasQuestExpansion[questID]
-end
-
--- Unknown IDs are not treated as in-range for titles; overlay handles them separately.
+-- AsItWasQuestPatch (data/QuestPatches.lua) is the only quest database. An ID
+-- missing from it is unknown: marked ? / [?], never in range for badges.
 function AIW.IsUnknown(questID)
     if not AIW.IsEnabled() or not questID then
         return false
     end
-    return AIW.QuestExpansion(questID) == nil
+    return AIW.QuestPatch(questID) == nil
 end
+
 function AIW.IsInRange(questID)
     if not AIW.IsEnabled() then
         return true
     end
     local patch = AIW.QuestPatch(questID)
     if not patch then
-        local expansion = AIW.QuestExpansion(questID)
-        if not expansion then
-            return true
-        end
-        local filter = AIW.GetActiveFilter()
-        if AsItWasDB.includeOlder ~= false then
-            return expansion <= filter.major
-        end
-        return expansion >= filter.major and expansion <= filter.major
+        return true
     end
     local filter = AIW.GetActiveFilter()
     if AsItWasDB.includeOlder ~= false then
@@ -279,8 +259,7 @@ function AIW.IsNewerThanFilter(questID)
     end
     local patch = AIW.QuestPatch(questID)
     if not patch then
-        local expansion = AIW.QuestExpansion(questID)
-        return expansion ~= nil and expansion > AIW.GetActiveFilter().major
+        return false
     end
     return patch > AIW.GetActiveFilter().max
 end
@@ -294,8 +273,7 @@ function AIW.IsOlderThanFilter(questID)
     end
     local patch = AIW.QuestPatch(questID)
     if not patch then
-        local expansion = AIW.QuestExpansion(questID)
-        return expansion ~= nil and expansion < AIW.GetActiveFilter().major
+        return false
     end
     return patch < AIW.GetActiveFilter().min
 end
@@ -356,32 +334,20 @@ function AIW.StripTitleMark(title)
     return title
 end
 
--- style "list" (quest log / NPC): warning when out of range.
--- style "map" (pin tooltip): newer/older arrow, or nothing when in range.
-function AIW.MarkTitle(questID, title, style)
+-- Quest log, tracker and NPC titles: warning when out of range. The map pin
+-- tooltip uses MapTitlePrefix (arrows instead of the warning).
+function AIW.MarkTitle(questID, title)
     title = AIW.StripTitleMark(title)
     if not AIW.IsEnabled() then
         return title
     end
     local patch = AIW.QuestPatch(questID)
     if not patch then
-        local expansion = AIW.QuestExpansion(questID)
-        if expansion then
-            local parts = { AIW.ExpansionChipMarkup(expansion), AIW.ExpansionShort(expansion), title }
-            return table.concat(parts, " ")
-        end
         return table.concat({ SimpleMarkup(TEX_UNKNOWN, MARK_H), "[?]", title }, " ")
     end
     local major = ExpansionMajorFromCode(patch)
     local parts = {}
-    if style == "map" then
-        local kind = AIW.OutOfRangeKind(questID)
-        if kind == "newer" then
-            parts[#parts + 1] = FileMarkup(TEX_NEWER, ARROW_FILE, ARROW_FILE, MARK_H, MARK_H)
-        elseif kind == "older" then
-            parts[#parts + 1] = FileMarkup(TEX_OLDER, ARROW_FILE, ARROW_FILE, MARK_H, MARK_H)
-        end
-    elseif not AIW.IsInRange(questID) then
+    if not AIW.IsInRange(questID) then
         parts[#parts + 1] = SimpleMarkup(TEX_WARNING, MARK_H)
     end
     local chip = AIW.ExpansionChipMarkup(major)
@@ -403,10 +369,6 @@ function AIW.MapTitlePrefix(questID)
 
     local patch = AIW.QuestPatch(questID)
     if not patch then
-        local expansion = AIW.QuestExpansion(questID)
-        if expansion then
-            return table.concat({ AIW.ExpansionChipMarkup(expansion), AIW.ExpansionShort(expansion) }, " ")
-        end
         return table.concat({ SimpleMarkup(TEX_UNKNOWN, MARK_H), "[?]" }, " ")
     end
 
